@@ -26,3 +26,8 @@ email-validator==2.3.0
 # Optional database drivers (uncomment if using these databases)
 # mysqlclient==2.2.4  # For MySQL on PythonAnywhere
 # psycopg2-binary==2.9.10  # For PostgreSQL
+email_validator
+flask
+flask-sqlalchemy
+gunicorn
+psycopg2-binary
