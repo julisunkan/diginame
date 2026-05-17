@@ -1,7 +1,9 @@
-const CACHE_NAME = 'blog-cms-v2';
+const CACHE_NAME = 'blog-cms-v3';
+const OFFLINE_URL = '/offline';
 
 const PRECACHE_URLS = [
   '/',
+  '/offline',
   '/static/css/style.css',
   '/dynamic-styles.css',
   '/static/manifest.json',
@@ -70,7 +72,7 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // HTML pages: network-first, fall back to cache
+  // HTML pages: network-first, fall back to cache, then offline page
   event.respondWith(
     fetch(event.request)
       .then(function (response) {
@@ -84,7 +86,7 @@ self.addEventListener('fetch', function (event) {
       })
       .catch(function () {
         return caches.match(event.request).then(function (cached) {
-          return cached || caches.match('/');
+          return cached || caches.match(OFFLINE_URL);
         });
       })
   );

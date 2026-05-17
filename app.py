@@ -615,6 +615,11 @@ def generate_certificate():
     return redirect(url_for('download_certificate', post_id=post_id, student_name=student_name))
 
 
+@app.route('/offline')
+def offline():
+    return render_template('offline.html')
+
+
 @app.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
