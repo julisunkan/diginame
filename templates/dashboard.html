@@ -92,7 +92,6 @@
                         <tr>
                             <th style="width:45%;">Title</th>
                             <th class="d-none d-md-table-cell" style="width:20%;">Categories</th>
-                            <th class="d-none d-sm-table-cell" style="width:15%;">Date</th>
                             <th style="width:20%;">Actions</th>
                         </tr>
                     </thead>
@@ -121,9 +120,6 @@
                                 {% else %}
                                     <span class="text-muted small">—</span>
                                 {% endif %}
-                            </td>
-                            <td class="d-none d-sm-table-cell text-muted small">
-                                {{ post.created_at.strftime('%b %d, %Y') }}
                             </td>
                             <td>
                                 <div class="d-flex gap-1">

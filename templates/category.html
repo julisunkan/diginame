@@ -72,8 +72,7 @@
                     {% endif %}
                     <h5 class="card-title">{{ post.title }}</h5>
                     <p class="card-text flex-grow-1">{{ (post.content | striptags)[:120] }}{% if post.content|length > 120 %}…{% endif %}</p>
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-muted"><i class="fas fa-calendar me-1"></i>{{ post.created_at.strftime('%b %d, %Y') }}</small>
+                    <div class="d-flex justify-content-end mt-3">
                         <a href="{{ url_for('post_detail', id=post.id) }}" class="btn btn-sm btn-gradient">Read →</a>
                     </div>
                 </div>
