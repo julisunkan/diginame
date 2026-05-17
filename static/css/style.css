@@ -1110,3 +1110,253 @@ a.nav-link, a.navbar-brand {
     .category-title { font-size: 1.4rem; }
     .category-badge-lg { padding: 8px 16px; font-size: .85rem; }
 }
+
+/* =============================================================
+   DASHBOARD STAT CARDS
+   ============================================================= */
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    border-color: rgba(165,180,252,.3);
+}
+.stat-icon {
+    font-size: 1.5rem;
+    color: #a5b4fc;
+    margin-bottom: 10px;
+}
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+.stat-label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.5);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+/* =============================================================
+   ADMIN TABLE
+   ============================================================= */
+
+.admin-table { color: #e2e8f0; }
+.admin-table thead th {
+    background: rgba(255,255,255,.05);
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    color: rgba(255,255,255,.55);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: 10px 14px;
+}
+.admin-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    transition: background .2s;
+}
+.admin-table tbody tr:last-child { border-bottom: none; }
+.admin-table tbody tr:hover { background: rgba(255,255,255,.04); }
+.admin-table tbody td { padding: 12px 14px; vertical-align: middle; }
+
+.post-table-title {
+    color: #e2e8f0;
+    font-weight: 500;
+    font-size: .9rem;
+}
+.post-table-title:hover { color: #a5b4fc; }
+
+.btn-xs {
+    padding: 5px 10px;
+    font-size: .78rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: all .2s ease;
+}
+.btn-edit {
+    background: rgba(99,102,241,.2);
+    color: #a5b4fc;
+}
+.btn-edit:hover {
+    background: rgba(99,102,241,.4);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.btn-view {
+    background: rgba(52,211,153,.15);
+    color: #6ee7b7;
+}
+.btn-view:hover {
+    background: rgba(52,211,153,.3);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.btn-delete {
+    background: rgba(239,68,68,.15);
+    color: #fca5a5;
+}
+.btn-delete:hover {
+    background: rgba(239,68,68,.35);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: rgba(255,255,255,.3);
+    font-size: 1.5rem;
+}
+
+/* =============================================================
+   LOGIN PAGE
+   ============================================================= */
+
+.login-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 1.8rem;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(79,70,229,.4);
+}
+
+.show-pass-btn {
+    background: rgba(255,255,255,.08);
+    border: 2px solid rgba(255,255,255,.15);
+    border-left: none;
+    color: rgba(255,255,255,.6);
+    border-radius: 0 12px 12px 0;
+    cursor: pointer;
+    transition: all .2s;
+}
+.show-pass-btn:hover {
+    background: rgba(255,255,255,.15);
+    color: #fff;
+}
+
+/* =============================================================
+   HEADER ACTION BUTTONS (mobile)
+   ============================================================= */
+
+.header-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.08);
+    color: #555;
+    text-decoration: none;
+    font-size: .95rem;
+    transition: all .2s ease;
+}
+.header-action-btn:hover {
+    background: rgba(0,0,0,.15);
+    color: #333;
+}
+.header-action-btn-danger {
+    background: rgba(239,68,68,.1);
+    color: #dc2626;
+}
+.header-action-btn-danger:hover {
+    background: rgba(239,68,68,.25);
+    color: #b91c1c;
+}
+
+/* =============================================================
+   ALERT VARIANTS (info / warning)
+   ============================================================= */
+
+.mobile-alert.alert-info {
+    border-left: 4px solid #3b82f6;
+}
+.mobile-alert.alert-warning {
+    border-left: 4px solid #f59e0b;
+}
+
+/* =============================================================
+   COLOR PICKER
+   ============================================================= */
+
+.color-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.color-picker-wrap .form-control-color {
+    width: 48px;
+    height: 42px;
+    padding: 3px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+.color-hex-label {
+    font-size: .8rem;
+    color: rgba(255,255,255,.55);
+    font-family: monospace;
+    letter-spacing: .03em;
+}
+
+/* =============================================================
+   FILE DROP ZONE
+   ============================================================= */
+
+.file-drop-zone {
+    border: 2px dashed rgba(165,180,252,.35);
+    border-radius: 16px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .25s ease;
+    background: rgba(79,70,229,.05);
+}
+.file-drop-zone:hover,
+.file-drop-zone.drop-active {
+    border-color: #a5b4fc;
+    background: rgba(79,70,229,.12);
+}
+.file-drop-zone input[type="file"] {
+    margin: 0 auto;
+    display: block;
+    max-width: 240px;
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.15);
+    color: rgba(255,255,255,.8);
+    font-size: .85rem;
+    padding: 6px 12px;
+    border-radius: 10px;
+    margin-bottom: 0;
+}

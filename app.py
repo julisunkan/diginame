@@ -589,6 +589,7 @@ def export_tutorials():
                 'title': p.title,
                 'content': p.content,
                 'featured_image': p.featured_image,
+                'tags': p.tags,
                 'created_at': p.created_at.isoformat() if p.created_at else None,
             }
             for p in posts
@@ -650,6 +651,7 @@ def import_tutorials():
                     'title': post_data['title'],
                     'content': post_data['content'],
                     'featured_image': post_data.get('featured_image'),
+                    'tags': post_data.get('tags', []),
                     'created_at': created_at,
                 })
                 existing_titles.add(post_data['title'])
@@ -665,7 +667,7 @@ def import_tutorials():
                 flash(
                     f'No new tutorials imported. '
                     f'Skipped {skipped_count} duplicates or invalid entries.',
-                    'warning',
+                    'info',
                 )
             return redirect(url_for('admin_dashboard'))
 
@@ -957,7 +959,9 @@ body.mobile-app-body {{
 @keyframes ripple {{
     to {{ width: 300px; height: 300px; opacity: 0; }}
 }}
-* {{ transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease; }}
+a, button, .btn, .card, .nav-item, .form-control, .tag-chip, .category-pill {{ 
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; 
+}}
 """
     return Response(css_content, mimetype='text/css')
 

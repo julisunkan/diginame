@@ -1,68 +1,147 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Settings{% endblock %}
+{% block title %}Site Settings — {{ site_settings.blog_title }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="text-white animate__animated animate__fadeInLeft">Blog Settings</h1>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-gradient animate__animated animate__fadeInRight">← Back to Dashboard</a>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
+    <div>
+        <h1 class="text-white mb-1" style="font-size:1.8rem;font-weight:800;">
+            <i class="fas fa-palette me-2"></i>Site Settings
+        </h1>
+        <p class="text-white-50 mb-0 small">Customize your blog's appearance and content</p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light btn-sm">
+        <i class="fas fa-arrow-left me-2"></i>Dashboard
+    </a>
+</div>
 
-        <div class="card blog-card animate__animated animate__fadeIn">
-            <div class="card-body">
-                <h5 class="card-title mb-4">Site Configuration</h5>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="blog_title" class="form-label">Blog Title</label>
-                        <input type="text" class="form-control" id="blog_title" name="blog_title" value="{{ settings.blog_title }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="blog_description" class="form-label">Blog Description</label>
-                        <textarea class="form-control" id="blog_description" name="blog_description" rows="3" required>{{ settings.blog_description }}</textarea>
-                    </div>
-                    
-                    <h6 class="mt-4 mb-3">Color Customization</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="primary_color" class="form-label">Primary Color</label>
-                            <input type="color" class="form-control form-control-color" id="primary_color" name="primary_color" value="{{ settings.primary_color }}" title="Choose primary color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="secondary_color" class="form-label">Secondary Color</label>
-                            <input type="color" class="form-control form-control-color" id="secondary_color" name="secondary_color" value="{{ settings.secondary_color }}" title="Choose secondary color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="background_color" class="form-label">Gradient Background</label>
-                            <input type="color" class="form-control form-control-color" id="background_color" name="background_color" value="{{ settings.background_color }}" title="Choose gradient background color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="overall_background" class="form-label">Overall Background</label>
-                            <input type="color" class="form-control form-control-color" id="overall_background" name="overall_background" value="{{ settings.overall_background }}" title="Choose overall background color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="card_background" class="form-label">Card Background</label>
-                            <input type="color" class="form-control form-control-color" id="card_background" name="card_background" value="{{ settings.card_background }}" title="Choose card background color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="text_color" class="form-label">Text Color</label>
-                            <input type="color" class="form-control form-control-color" id="text_color" name="text_color" value="{{ settings.text_color }}" title="Choose text color">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="navbar_color" class="form-label">Navbar Color</label>
-                            <input type="color" class="form-control form-control-color" id="navbar_color" name="navbar_color" value="{{ settings.navbar_color }}" title="Choose navbar color">
-                        </div>
-                    </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-gradient">Update Settings</button>
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
-                    </div>
-                </form>
+<form method="POST" class="animate__animated animate__fadeIn">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Site Info -->
+    <div class="card blog-card mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-4" style="color:#a5b4fc;">
+                <i class="fas fa-info-circle me-2"></i>Site Information
+            </h5>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="blog_title" class="form-label fw-semibold">Blog Title</label>
+                    <input type="text" class="form-control" id="blog_title" name="blog_title"
+                           value="{{ settings.blog_title }}" required
+                           placeholder="My Awesome Blog">
+                </div>
+                <div class="col-12">
+                    <label for="blog_description" class="form-label fw-semibold">Blog Description</label>
+                    <textarea class="form-control" id="blog_description" name="blog_description"
+                              rows="2" required
+                              placeholder="A short description of your blog">{{ settings.blog_description }}</textarea>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Color Customization -->
+    <div class="card blog-card mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:#a5b4fc;">
+                <i class="fas fa-paint-brush me-2"></i>Color Scheme
+            </h5>
+            <p class="text-white-50 small mb-4">These colors control the overall look of your site.</p>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <label for="primary_color" class="form-label fw-semibold">Primary Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="primary_color"
+                               name="primary_color" value="{{ settings.primary_color }}"
+                               title="Choose primary color">
+                        <span class="color-hex-label" id="primary_color_label">{{ settings.primary_color }}</span>
+                    </div>
+                    <small class="text-white-50">Buttons, links, accents</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="secondary_color" class="form-label fw-semibold">Secondary Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="secondary_color"
+                               name="secondary_color" value="{{ settings.secondary_color }}"
+                               title="Choose secondary color">
+                        <span class="color-hex-label" id="secondary_color_label">{{ settings.secondary_color }}</span>
+                    </div>
+                    <small class="text-white-50">Gradient end, highlights</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="navbar_color" class="form-label fw-semibold">Navbar Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="navbar_color"
+                               name="navbar_color" value="{{ settings.navbar_color }}"
+                               title="Choose navbar color">
+                        <span class="color-hex-label" id="navbar_color_label">{{ settings.navbar_color }}</span>
+                    </div>
+                    <small class="text-white-50">Top navigation bar</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="overall_background" class="form-label fw-semibold">Page Background</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="overall_background"
+                               name="overall_background" value="{{ settings.overall_background }}"
+                               title="Choose overall background color">
+                        <span class="color-hex-label" id="overall_background_label">{{ settings.overall_background }}</span>
+                    </div>
+                    <small class="text-white-50">Main page background</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="background_color" class="form-label fw-semibold">Gradient Start</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="background_color"
+                               name="background_color" value="{{ settings.background_color }}"
+                               title="Choose gradient background color">
+                        <span class="color-hex-label" id="background_color_label">{{ settings.background_color }}</span>
+                    </div>
+                    <small class="text-white-50">Hero gradient start</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="card_background" class="form-label fw-semibold">Card Background</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="card_background"
+                               name="card_background" value="{{ settings.card_background }}"
+                               title="Choose card background color">
+                        <span class="color-hex-label" id="card_background_label">{{ settings.card_background }}</span>
+                    </div>
+                    <small class="text-white-50">Post cards & panels</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="text_color" class="form-label fw-semibold">Text Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="text_color"
+                               name="text_color" value="{{ settings.text_color }}"
+                               title="Choose text color">
+                        <span class="color-hex-label" id="text_color_label">{{ settings.text_color }}</span>
+                    </div>
+                    <small class="text-white-50">Body text color</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-gradient px-4 py-2 fw-semibold">
+            <i class="fas fa-save me-2"></i>Save Settings
+        </button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light py-2">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<script>
+document.querySelectorAll('input[type="color"]').forEach(input => {
+    const labelId = input.id + '_label';
+    const label   = document.getElementById(labelId);
+    input.addEventListener('input', () => {
+        if (label) label.textContent = input.value;
+    });
+});
+</script>
 {% endblock %}

@@ -29,33 +29,41 @@
     <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}">
 </head>
 <body class="mobile-app-body">
+
     <!-- Desktop Navbar - Hidden on Mobile -->
     <nav class="navbar navbar-expand-lg navbar-dark d-none d-md-flex" style="background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(20px);">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">{{ site_settings.blog_title }}</a>
-            
-            <div class="navbar-nav ms-auto">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="fas fa-graduation-cap me-2"></i>{{ site_settings.blog_title }}
+            </a>
+
+            <div class="navbar-nav ms-auto align-items-center">
                 <a class="nav-link {{ 'active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">
-                    <i class="fas fa-home me-2"></i>Home
+                    <i class="fas fa-home me-1"></i>Home
                 </a>
                 <a class="nav-link {{ 'active' if request.endpoint == 'certificate_form' }}" href="{{ url_for('certificate_form') }}">
-                    <i class="fas fa-certificate me-2"></i>Certificate
+                    <i class="fas fa-certificate me-1"></i>Certificate
                 </a>
                 {% if session.logged_in %}
+                    <span class="navbar-text text-white-50 mx-2">|</span>
                     <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}" href="{{ url_for('admin_dashboard') }}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                     </a>
                     <a class="nav-link {{ 'active' if request.endpoint == 'new_post' }}" href="{{ url_for('new_post') }}">
-                        <i class="fas fa-plus-circle me-2"></i>New Post
+                        <i class="fas fa-plus-circle me-1"></i>New Post
                     </a>
                     <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' }}" href="{{ url_for('admin_settings') }}">
-                        <i class="fas fa-cog me-2"></i>Settings
+                        <i class="fas fa-cog me-1"></i>Settings
                     </a>
                     <a class="nav-link {{ 'active' if request.endpoint == 'change_password' }}" href="{{ url_for('change_password') }}">
-                        <i class="fas fa-lock me-2"></i>Password
+                        <i class="fas fa-lock me-1"></i>Credentials
                     </a>
-                    <a class="nav-link" href="{{ url_for('admin_logout') }}">
-                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    <a class="nav-link text-danger" href="{{ url_for('admin_logout') }}">
+                        <i class="fas fa-sign-out-alt me-1"></i>Logout
+                    </a>
+                {% else %}
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_login' }}" href="{{ url_for('admin_login') }}">
+                        <i class="fas fa-lock me-1"></i>Admin
                     </a>
                 {% endif %}
             </div>
@@ -65,14 +73,21 @@
     <!-- Mobile App Header - Hidden on Desktop -->
     <header class="mobile-header d-md-none">
         <div class="header-content">
-            <h1 class="app-title">{{ site_settings.blog_title }}</h1>
-            {% if session.logged_in %}
-                <div class="header-actions">
-                    <a href="{{ url_for('admin_logout') }}" class="logout-btn">
+            <a href="{{ url_for('index') }}" class="text-decoration-none">
+                <h1 class="app-title">
+                    <i class="fas fa-graduation-cap me-1" style="font-size:1.1rem;"></i>{{ site_settings.blog_title }}
+                </h1>
+            </a>
+            <div class="header-actions d-flex align-items-center gap-2">
+                {% if session.logged_in %}
+                    <a href="{{ url_for('new_post') }}" class="header-action-btn" title="New Post">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}" class="header-action-btn header-action-btn-danger" title="Logout">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </header>
 
@@ -82,8 +97,24 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="mobile-alert alert-{{ 'danger' if category == 'error' else 'success' }} animate__animated animate__fadeInDown">
-                            {{ message }}
+                        {% if category == 'error' %}
+                            {% set alert_class = 'alert-danger' %}
+                            {% set alert_icon = 'fas fa-times-circle' %}
+                        {% elif category == 'warning' %}
+                            {% set alert_class = 'alert-warning' %}
+                            {% set alert_icon = 'fas fa-exclamation-triangle' %}
+                        {% elif category == 'info' %}
+                            {% set alert_class = 'alert-info' %}
+                            {% set alert_icon = 'fas fa-info-circle' %}
+                        {% else %}
+                            {% set alert_class = 'alert-success' %}
+                            {% set alert_icon = 'fas fa-check-circle' %}
+                        {% endif %}
+                        <div class="mobile-alert {{ alert_class }} animate__animated animate__fadeInDown">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="{{ alert_icon }}"></i>
+                                <span>{{ message }}</span>
+                            </div>
                             <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -104,31 +135,27 @@
                 <span>Home</span>
             </a>
 
+            <a href="{{ url_for('certificate_form') }}" class="nav-item {{ 'active' if request.endpoint == 'certificate_form' }}">
+                <i class="fas fa-certificate"></i>
+                <span>Certificate</span>
+            </a>
+
             {% if session.logged_in %}
                 <a href="{{ url_for('admin_dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin_dashboard' }}">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
 
-                <a href="{{ url_for('new_post') }}" class="nav-item {{ 'active' if request.endpoint == 'new_post' }}">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>New Post</span>
-                </a>
-
-                <a href="{{ url_for('admin_settings') }}" class="nav-item {{ 'active' if request.endpoint == 'admin_settings' }}">
+                <a href="{{ url_for('admin_settings') }}" class="nav-item {{ 'active' if request.endpoint in ['admin_settings', 'change_password'] }}">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
                 </a>
-                <a href="{{ url_for('change_password') }}" class="nav-item {{ 'active' if request.endpoint == 'change_password' }}">
+            {% else %}
+                <a href="{{ url_for('admin_login') }}" class="nav-item {{ 'active' if request.endpoint == 'admin_login' }}">
                     <i class="fas fa-lock"></i>
-                    <span>Password</span>
+                    <span>Admin</span>
                 </a>
             {% endif %}
-            
-            <a href="{{ url_for('certificate_form') }}" class="nav-item {{ 'active' if request.endpoint == 'certificate_form' }}">
-                <i class="fas fa-certificate"></i>
-                <span>Certificate</span>
-            </a>
         </div>
     </nav>
 
@@ -145,6 +172,15 @@
                     });
             });
         }
+
+        // Auto-dismiss alerts after 5 seconds
+        document.querySelectorAll('.mobile-alert').forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-10px)';
+                setTimeout(() => alert.style.display = 'none', 300);
+            }, 5000);
+        });
     </script>
 </body>
 </html>
