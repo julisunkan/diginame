@@ -61,6 +61,51 @@
     {% endif %}
 </div>
 
+<!-- ========== POST STRIP GRID ========== -->
+{% if posts %}
+<div class="post-strip-section mb-5 animate__animated animate__fadeInUp">
+    <div class="post-strip-header">
+        <div class="post-strip-title">
+            <i class="fas fa-fire me-2" style="color:#f97316;"></i>All Tutorials
+            <span class="post-strip-count">{{ posts | length }}</span>
+        </div>
+        <div class="post-strip-arrows">
+            <button class="strip-arrow" id="stripPrev" aria-label="Scroll left">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="strip-arrow" id="stripNext" aria-label="Scroll right">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="post-strip-track-wrap">
+        <div class="post-strip-track" id="postStripTrack">
+            {% for post in posts %}
+            <a href="{{ url_for('post_detail', id=post.id) }}" class="post-strip-card" data-index="{{ loop.index0 }}">
+                <div class="post-strip-thumb">
+                    {% if post.featured_image %}
+                    <img src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
+                    {% else %}
+                    <div class="post-strip-thumb-placeholder">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    {% endif %}
+                    <div class="post-strip-thumb-overlay"></div>
+                    {% if post.tags %}
+                    <span class="post-strip-tag">{{ post.tags[0] }}</span>
+                    {% endif %}
+                </div>
+                <div class="post-strip-info">
+                    <p class="post-strip-name">{{ post.title | truncate(52, true, '…') }}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- ========== FILTER PANEL ========== -->
 {% if posts %}
 <div class="filter-panel mb-5 animate__animated animate__fadeInUp">
@@ -189,6 +234,46 @@
      JavaScript: Slideshow + Search + Filter + Tilt + Scroll Reveal
      ==================================================== -->
 <script>
+/* ── Post Strip Scroll ── */
+(function() {
+    const track  = document.getElementById('postStripTrack');
+    const prev   = document.getElementById('stripPrev');
+    const next   = document.getElementById('stripNext');
+    if (!track) return;
+
+    const STEP = () => track.querySelector('.post-strip-card')?.offsetWidth + 16 || 220;
+
+    function updateArrows() {
+        if (!prev || !next) return;
+        prev.style.opacity = track.scrollLeft <= 4 ? '0.3' : '1';
+        next.style.opacity = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4 ? '0.3' : '1';
+    }
+
+    if (prev) prev.addEventListener('click', () => {
+        track.scrollBy({ left: -STEP() * 2, behavior: 'smooth' });
+    });
+    if (next) next.addEventListener('click', () => {
+        track.scrollBy({ left: STEP() * 2, behavior: 'smooth' });
+    });
+
+    track.addEventListener('scroll', updateArrows, { passive: true });
+    updateArrows();
+
+    /* drag-to-scroll on desktop */
+    let isDown = false, startX, scrollLeft;
+    track.addEventListener('mousedown', e => {
+        isDown = true; track.classList.add('dragging');
+        startX = e.pageX - track.offsetLeft;
+        scrollLeft = track.scrollLeft;
+    });
+    document.addEventListener('mouseup',   () => { isDown = false; track.classList.remove('dragging'); });
+    track.addEventListener('mousemove', e => {
+        if (!isDown) return;
+        e.preventDefault();
+        track.scrollLeft = scrollLeft - (e.pageX - track.offsetLeft - startX);
+    });
+})();
+
 /* ── Slideshow ── */
 let currentSlide = 0;
 const slides    = document.querySelectorAll('.hero-slide');
