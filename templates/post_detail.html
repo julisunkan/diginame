@@ -96,7 +96,7 @@ document.getElementById('certificateForm').addEventListener('submit', function(e
 // Download functionality - server-side generation
 document.getElementById('downloadBtn').addEventListener('click', function() {
     const studentName = document.getElementById('certificateName').textContent;
-    const postId = {{ post.id }};
+    const postId = "{{ post.id }}";
 
     if (!studentName || studentName.trim() === '') {
         alert('Please generate the certificate first by entering your name.');

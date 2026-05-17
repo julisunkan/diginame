@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import functools
 from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime, timedelta
@@ -223,11 +224,11 @@ except Exception as e:
 # ---------------------------------------------------------------------------
 
 def login_required(f):
+    @functools.wraps(f)
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session:
             return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
     return decorated_function
 
 
@@ -277,6 +278,7 @@ def post_detail(id):
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
+    admin = None
     try:
         admin = fs_get_admin()
         stored_username = admin.get('username', 'admin') if admin else 'admin'
@@ -479,7 +481,12 @@ def admin_settings():
 @app.route('/admin/export')
 @login_required
 def export_tutorials():
-    posts = fs_get_all_posts()
+    try:
+        posts = fs_get_all_posts()
+    except Exception as e:
+        logging.error(f"Error loading posts for export: {e}")
+        flash(f'Error exporting tutorials: {e}', 'error')
+        return redirect(url_for('admin_dashboard'))
     tutorials_data = {
         'export_date': datetime.now().isoformat(),
         'total_posts': len(posts),
@@ -528,6 +535,7 @@ def import_tutorials():
 
             existing_titles = {p.title for p in fs_get_all_posts()}
             imported_count = skipped_count = 0
+            db = get_db()
 
             for post_data in data['posts']:
                 if not post_data.get('title') or not post_data.get('content'):
@@ -544,7 +552,6 @@ def import_tutorials():
                         )
                     except Exception:
                         pass
-                db = get_db()
                 db.collection('posts').add({
                     'title': post_data['title'],
                     'content': post_data['content'],
