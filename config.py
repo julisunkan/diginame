@@ -24,10 +24,11 @@ class ProductionConfig(Config):
 
     def __init__(self):
         if not os.environ.get('SESSION_SECRET'):
-            raise ValueError("SESSION_SECRET environment variable must be set for production!")
+            raise ValueError("SESSION_SECRET must be set in production.")
         self.SECRET_KEY = os.environ['SESSION_SECRET']
+
         if not os.environ.get('FIREBASE_SERVICE_ACCOUNT'):
-            raise ValueError("FIREBASE_SERVICE_ACCOUNT environment variable must be set for production!")
+            raise ValueError("FIREBASE_SERVICE_ACCOUNT must be set in production.")
 
 
 config = {
