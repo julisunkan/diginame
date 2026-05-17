@@ -77,21 +77,27 @@ class SiteSettings(db.Model):
 os.makedirs('instance', exist_ok=True)
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception:
+        db.session.rollback()
     # Create default site settings if none exist
-    if not SiteSettings.query.first():
-        default_settings = SiteSettings()
-        default_settings.blog_title = 'Blog CMS'
-        default_settings.blog_description = 'Welcome to Our Blog'
-        default_settings.primary_color = '#667eea'
-        default_settings.secondary_color = '#764ba2'
-        default_settings.background_color = '#667eea'
-        default_settings.overall_background = '#1a1a2e'
-        default_settings.card_background = '#ffffff'
-        default_settings.text_color = '#333333'
-        default_settings.navbar_color = '#000000'
-        db.session.add(default_settings)
-        db.session.commit()
+    try:
+        if not SiteSettings.query.first():
+            default_settings = SiteSettings()
+            default_settings.blog_title = 'Blog CMS'
+            default_settings.blog_description = 'Welcome to Our Blog'
+            default_settings.primary_color = '#667eea'
+            default_settings.secondary_color = '#764ba2'
+            default_settings.background_color = '#667eea'
+            default_settings.overall_background = '#1a1a2e'
+            default_settings.card_background = '#ffffff'
+            default_settings.text_color = '#333333'
+            default_settings.navbar_color = '#000000'
+            db.session.add(default_settings)
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 # Authentication decorator
 def login_required(f):
