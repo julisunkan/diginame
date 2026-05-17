@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 import functools
@@ -50,12 +51,23 @@ def get_db():
 # existing Jinja templates work without modification)
 # ---------------------------------------------------------------------------
 
+def slugify(text):
+    """Convert a tag name to a URL-safe slug."""
+    text = str(text).lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[\s_]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text.strip('-')
+
+
 class Post:
     def __init__(self, doc_id, data):
         self.id = doc_id
         self.title = data.get('title', '')
         self.content = data.get('content', '')
         self.featured_image = data.get('featured_image') or None
+        raw_tags = data.get('tags', [])
+        self.tags = raw_tags if isinstance(raw_tags, list) else []
         raw_ts = data.get('created_at')
         if isinstance(raw_ts, datetime):
             self.created_at = raw_ts
@@ -67,6 +79,7 @@ class Post:
             'title': self.title,
             'content': self.content,
             'featured_image': self.featured_image,
+            'tags': self.tags,
             'created_at': self.created_at,
         }
 
@@ -131,30 +144,72 @@ def fs_get_post(post_id):
     return Post(doc.id, doc.to_dict())
 
 
-def fs_create_post(title, content, featured_image=None):
+def fs_create_post(title, content, featured_image=None, tags=None):
     db = get_db()
     data = {
         'title': title,
         'content': content,
         'featured_image': featured_image,
+        'tags': tags or [],
         'created_at': datetime.utcnow(),
     }
     _, doc_ref = db.collection('posts').add(data)
     return doc_ref.id
 
 
-def fs_update_post(post_id, title, content, featured_image=None):
+def fs_update_post(post_id, title, content, featured_image=None, tags=None):
     db = get_db()
     db.collection('posts').document(str(post_id)).update({
         'title': title,
         'content': content,
         'featured_image': featured_image,
+        'tags': tags or [],
     })
 
 
 def fs_delete_post(post_id):
     db = get_db()
     db.collection('posts').document(str(post_id)).delete()
+
+
+def fs_get_posts_by_tag(tag_slug):
+    """Return posts whose tags contain a tag matching the given slug."""
+    posts = fs_get_all_posts()
+    return [p for p in posts if any(slugify(t) == tag_slug for t in p.tags)]
+
+
+def fs_get_all_tags():
+    """Return a sorted list of all unique tag names across all posts."""
+    posts = fs_get_all_posts()
+    tag_set = {}
+    for p in posts:
+        for t in p.tags:
+            tag_set[slugify(t)] = t
+    return sorted(tag_set.values(), key=str.lower)
+
+
+def fs_find_tag_by_slug(slug):
+    """Return the original tag name for a given slug, or None."""
+    for t in fs_get_all_tags():
+        if slugify(t) == slug:
+            return t
+    return None
+
+
+def fs_get_related_posts(post, limit=3):
+    """Return up to `limit` posts sharing at least one tag, excluding `post`."""
+    if not post.tags:
+        return []
+    post_slugs = {slugify(t) for t in post.tags}
+    candidates = []
+    for p in fs_get_all_posts():
+        if p.id == post.id:
+            continue
+        overlap = sum(1 for t in p.tags if slugify(t) in post_slugs)
+        if overlap:
+            candidates.append((overlap, p))
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in candidates[:limit]]
 
 
 def fs_get_settings():
@@ -253,14 +308,21 @@ def inject_site_settings():
 # Public routes
 # ---------------------------------------------------------------------------
 
+@app.template_filter('slugify')
+def slugify_filter(text):
+    return slugify(text)
+
+
 @app.route('/')
 def index():
     try:
         posts = fs_get_all_posts()
+        all_tags = fs_get_all_tags()
     except Exception as e:
         logging.error(f"Error loading posts: {e}")
         posts = []
-    return render_template('index.html', posts=posts)
+        all_tags = []
+    return render_template('index.html', posts=posts, all_tags=all_tags)
 
 
 @app.route('/post/<string:id>')
@@ -269,7 +331,26 @@ def post_detail(id):
     if post is None:
         from flask import abort
         abort(404)
-    return render_template('post_detail.html', post=post)
+    try:
+        related = fs_get_related_posts(post)
+    except Exception:
+        related = []
+    return render_template('post_detail.html', post=post, related_posts=related)
+
+
+@app.route('/category/<string:tag>')
+def category(tag):
+    tag_name = fs_find_tag_by_slug(tag)
+    if tag_name is None:
+        tag_name = tag.replace('-', ' ').title()
+    try:
+        posts = fs_get_posts_by_tag(tag)
+        all_tags = fs_get_all_tags()
+    except Exception as e:
+        logging.error(f"Error loading category posts: {e}")
+        posts = []
+        all_tags = []
+    return render_template('category.html', posts=posts, tag=tag_name, all_tags=all_tags)
 
 
 # ---------------------------------------------------------------------------
@@ -333,14 +414,20 @@ def new_post():
         title = request.form['title']
         content = request.form['content']
         featured_image = request.form.get('featured_image', '').strip() or None
+        raw_tags = request.form.get('tags', '')
+        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
         try:
-            fs_create_post(title, content, featured_image)
+            fs_create_post(title, content, featured_image, tags)
             flash('Post created successfully!', 'success')
         except Exception as e:
             logging.error(f"Error creating post: {e}")
             flash(f'Error creating post: {e}', 'error')
         return redirect(url_for('admin_dashboard'))
-    return render_template('new_post.html')
+    try:
+        all_tags = fs_get_all_tags()
+    except Exception:
+        all_tags = []
+    return render_template('new_post.html', all_tags=all_tags)
 
 
 @app.route('/admin/edit/<string:id>', methods=['GET', 'POST'])
@@ -351,19 +438,26 @@ def edit_post(id):
         from flask import abort
         abort(404)
     if request.method == 'POST':
+        raw_tags = request.form.get('tags', '')
+        tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
         try:
             fs_update_post(
                 id,
                 request.form['title'],
                 request.form['content'],
                 request.form.get('featured_image', '').strip() or None,
+                tags,
             )
             flash('Post updated successfully!', 'success')
         except Exception as e:
             logging.error(f"Error updating post: {e}")
             flash(f'Error updating post: {e}', 'error')
         return redirect(url_for('admin_dashboard'))
-    return render_template('edit_post.html', post=post)
+    try:
+        all_tags = fs_get_all_tags()
+    except Exception:
+        all_tags = []
+    return render_template('edit_post.html', post=post, all_tags=all_tags)
 
 
 @app.route('/admin/delete/<string:id>', methods=['POST'])
