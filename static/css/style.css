@@ -2018,3 +2018,11 @@ a.nav-link, a.navbar-brand {
 @media (min-width: 601px) and (max-width: 900px) {
     .tut-img-col { width: 140px; }
 }
+
+/* Active tag highlight on category page */
+.tut-tag--active {
+    background: rgba(var(--card-rgb), .3) !important;
+    color: #fff !important;
+    border-color: rgba(var(--card-rgb), .5) !important;
+    font-weight: 700;
+}

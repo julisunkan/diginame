@@ -44,50 +44,72 @@
 {% endif %}
 
 <!-- Posts grid -->
-<div class="row g-4" id="postsGrid">
+{% set _accents = ['#4f46e5','#7c3aed','#db2777','#0891b2','#059669','#d97706'] %}
+{% set _rgbs    = ['79,70,229','124,58,237','219,39,119','8,145,178','5,150,105','217,119,6'] %}
+{% set _icons   = ['fa-code','fa-palette','fa-rocket','fa-database','fa-brain','fa-cube'] %}
+
+<div class="tut-grid" id="postsGrid">
     {% if posts %}
         {% for post in posts %}
-        <div class="col-md-6 col-lg-4 post-card-wrap" style="animation-delay: {{ loop.index0 * 0.08 }}s">
-            <div class="card blog-card h-100 tilt-card animate__animated animate__fadeInUp">
-                {% if post.featured_image %}
-                <div class="card-img-wrap">
-                    <img src="{{ post.featured_image }}" class="card-img-top" alt="{{ post.title }}"
-                         style="height:200px;object-fit:cover;">
-                    <div class="img-overlay"></div>
-                </div>
-                {% else %}
-                <div class="card-img-placeholder">
-                    <i class="fas fa-book-open"></i>
-                </div>
-                {% endif %}
-                <div class="card-body d-flex flex-column">
-                    <!-- Tags -->
-                    {% if post.tags %}
-                    <div class="post-tags mb-2">
-                        {% for t in post.tags %}
-                        <a href="{{ url_for('category', tag=t|slugify) }}"
-                           class="tag-chip{% if t == tag %} tag-chip-active{% endif %}">{{ t }}</a>
-                        {% endfor %}
+        {% set _a  = _accents[loop.index0 % 6] %}
+        {% set _r  = _rgbs[loop.index0 % 6] %}
+        {% set _ic = _icons[loop.index0 % 6] %}
+        {% set _words = (post.content | striptags | wordcount) %}
+        {% set _mins  = [(_words // 200), 1] | max %}
+
+        <div class="post-card-wrap tut-outer"
+             style="--card-accent:{{ _a }};--card-rgb:{{ _r }};animation-delay:{{ loop.index0 * 0.06 }}s">
+            <a href="{{ url_for('post_detail', id=post.id) }}" class="tut-card-h">
+
+                <div class="tut-stripe"></div>
+
+                <div class="tut-img-col">
+                    {% if post.featured_image %}
+                    <img src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
+                    {% else %}
+                    <div class="tut-img-placeholder">
+                        <i class="fas {{ _ic }}"></i>
                     </div>
                     {% endif %}
-                    <h5 class="card-title">{{ post.title }}</h5>
-                    <p class="card-text flex-grow-1">{{ (post.content | striptags)[:120] }}{% if post.content|length > 120 %}…{% endif %}</p>
-                    <div class="d-flex justify-content-end mt-3">
-                        <a href="{{ url_for('post_detail', id=post.id) }}" class="btn btn-sm btn-gradient">Read →</a>
+                    <div class="tut-img-overlay"></div>
+                </div>
+
+                <div class="tut-content-col">
+                    <div class="tut-top-row">
+                        <span class="tut-num">{{ '%02d' % loop.index }}</span>
+                        <div class="tut-tags-row">
+                            {% for t in post.tags[:2] %}
+                            <span class="tut-tag{% if t == tag %} tut-tag--active{% endif %}">{{ t }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <h3 class="tut-title card-title" data-original="{{ post.title }}">{{ post.title }}</h3>
+
+                    <p class="tut-excerpt">
+                        {{ (post.content | striptags)[:120] }}{% if post.content|length > 120 %}…{% endif %}
+                    </p>
+
+                    <div class="tut-footer">
+                        <span class="tut-read-time">
+                            <i class="fas fa-clock me-1"></i>{{ _mins }} min read
+                        </span>
+                        <span class="tut-cta">
+                            Read <i class="fas fa-arrow-right ms-1"></i>
+                        </span>
                     </div>
                 </div>
-            </div>
+
+                <div class="tut-glow"></div>
+            </a>
         </div>
         {% endfor %}
+
     {% else %}
-        <div class="col-12 text-center py-5 animate__animated animate__fadeIn">
-            <div class="card blog-card">
-                <div class="card-body py-5">
-                    <i class="fas fa-search fa-3x mb-3 text-muted"></i>
-                    <h4 class="text-muted">No tutorials in "{{ tag }}" yet</h4>
-                    <a href="{{ url_for('index') }}" class="btn btn-gradient mt-3">Browse All Tutorials</a>
-                </div>
-            </div>
+        <div class="tut-noresults animate__animated animate__fadeIn">
+            <i class="fas fa-search fa-3x mb-3" style="opacity:.35;"></i>
+            <h4 style="color:rgba(255,255,255,.5);">No tutorials in "{{ tag }}" yet</h4>
+            <a href="{{ url_for('index') }}" class="btn btn-gradient mt-4">Browse All Tutorials</a>
         </div>
     {% endif %}
 </div>
@@ -100,17 +122,5 @@ window.addEventListener('scroll', () => {
     document.getElementById('readingProgress').style.width = pct + '%';
 });
 
-// Tilt effect on cards
-document.querySelectorAll('.tilt-card').forEach(card => {
-    card.addEventListener('mousemove', e => {
-        const r = card.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width  - 0.5;
-        const y = (e.clientY - r.top)  / r.height - 0.5;
-        card.style.transform = `perspective(600px) rotateY(${x*10}deg) rotateX(${-y*10}deg) translateY(-6px)`;
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform = '';
-    });
-});
 </script>
 {% endblock %}
