@@ -375,43 +375,70 @@ def delete_post(id):
 # Admin settings
 # ---------------------------------------------------------------------------
 
-@app.route('/admin/change-password', methods=['GET', 'POST'])
+@app.route('/admin/change-credentials', methods=['GET', 'POST'])
 @login_required
 def change_password():
     if request.method == 'POST':
-        current_password = request.form.get('current_password', '')
-        new_password = request.form.get('new_password', '')
-        confirm_password = request.form.get('confirm_password', '')
+        action = request.form.get('action')
+        current_password = request.form.get('current_password', '').strip()
 
-        if not current_password or not new_password or not confirm_password:
-            flash('All fields are required.', 'error')
-            return render_template('change_password.html')
-
-        if new_password != confirm_password:
-            flash('New passwords do not match.', 'error')
-            return render_template('change_password.html')
-
-        if len(new_password) < 8:
-            flash('New password must be at least 8 characters.', 'error')
-            return render_template('change_password.html')
+        if not current_password:
+            flash('Current password is required to make any changes.', 'error')
+            return redirect(url_for('change_password'))
 
         try:
             admin = fs_get_admin()
             if not admin or not check_password_hash(admin.get('password_hash', ''), current_password):
                 flash('Current password is incorrect.', 'error')
-                return render_template('change_password.html')
+                return redirect(url_for('change_password'))
 
             db = get_db()
-            db.collection('admin').document('credentials').update({
-                'password_hash': generate_password_hash(new_password),
-            })
-            flash('Password updated successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        except Exception as e:
-            logging.error(f"Error changing password: {e}")
-            flash(f'Error updating password: {e}', 'error')
+            updates = {}
 
-    return render_template('change_password.html')
+            if action == 'username':
+                new_username = request.form.get('new_username', '').strip()
+                if not new_username:
+                    flash('New username cannot be empty.', 'error')
+                    return redirect(url_for('change_password'))
+                if len(new_username) < 3:
+                    flash('Username must be at least 3 characters.', 'error')
+                    return redirect(url_for('change_password'))
+                updates['username'] = new_username
+                db.collection('admin').document('credentials').update(updates)
+                flash('Username updated successfully!', 'success')
+
+            elif action == 'password':
+                new_password = request.form.get('new_password', '')
+                confirm_password = request.form.get('confirm_password', '')
+                if not new_password or not confirm_password:
+                    flash('New password fields cannot be empty.', 'error')
+                    return redirect(url_for('change_password'))
+                if new_password != confirm_password:
+                    flash('New passwords do not match.', 'error')
+                    return redirect(url_for('change_password'))
+                if len(new_password) < 8:
+                    flash('New password must be at least 8 characters.', 'error')
+                    return redirect(url_for('change_password'))
+                updates['password_hash'] = generate_password_hash(new_password)
+                db.collection('admin').document('credentials').update(updates)
+                flash('Password updated successfully!', 'success')
+
+            else:
+                flash('Unknown action.', 'error')
+
+            return redirect(url_for('admin_dashboard'))
+
+        except Exception as e:
+            logging.error(f"Error updating credentials: {e}")
+            flash(f'Error updating credentials: {e}', 'error')
+
+    try:
+        admin = fs_get_admin()
+        current_username = admin.get('username', 'admin') if admin else 'admin'
+    except Exception:
+        current_username = 'admin'
+
+    return render_template('change_password.html', current_username=current_username)
 
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
