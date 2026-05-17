@@ -277,11 +277,16 @@ def post_detail(id):
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
+    try:
+        admin = fs_get_admin()
+        stored_username = admin.get('username', 'admin') if admin else 'admin'
+    except Exception:
+        stored_username = 'admin'
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         try:
-            admin = fs_get_admin()
             if admin and username == admin.get('username') and \
                     check_password_hash(admin.get('password_hash', ''), password):
                 session['logged_in'] = True
@@ -291,9 +296,9 @@ def admin_login():
         except Exception as e:
             logging.error(f"Login error: {e}")
             flash('Could not verify credentials. Check Firebase configuration.', 'error')
-            return render_template('login.html')
+            return render_template('login.html', stored_username=stored_username)
         flash('Invalid credentials!', 'error')
-    return render_template('login.html')
+    return render_template('login.html', stored_username=stored_username)
 
 
 @app.route('/admin/logout')
