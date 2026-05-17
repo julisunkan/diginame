@@ -620,6 +620,14 @@ def serve_manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
 
+@app.route('/sw.js')
+def serve_sw():
+    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
 @app.route('/certificate/<string:post_id>/<path:student_name>')
 def download_certificate(post_id, student_name):
     post = fs_get_post(post_id)
