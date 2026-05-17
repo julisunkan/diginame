@@ -61,6 +61,27 @@
     {% endif %}
 </div>
 
+<!-- ========== SEARCH BAR ========== -->
+{% if posts %}
+<div class="search-bar-wrap mb-4 animate__animated animate__fadeInDown">
+    <div class="search-bar-inner">
+        <i class="fas fa-search search-icon"></i>
+        <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search tutorials…"
+            autocomplete="off"
+            aria-label="Search tutorials"
+        >
+        <button class="search-clear" id="searchClear" aria-label="Clear search" style="display:none;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="search-results-count" id="searchCount"></div>
+</div>
+{% endif %}
+
 <!-- ========== CATEGORY FILTER BAR ========== -->
 {% if all_tags %}
 <div class="category-filter-bar mb-4 animate__animated animate__fadeInDown" id="filterBar">
@@ -81,6 +102,7 @@
         {% for post in posts %}
         <div class="col-md-6 col-lg-4 post-card-wrap reveal-card"
              data-tags="{{ post.tags | map('lower') | join(',') }}"
+             data-title="{{ post.title | lower }}"
              style="animation-delay:{{ loop.index0 * 0.07 }}s">
             <div class="card blog-card h-100 tilt-card">
                 {% if post.featured_image %}
@@ -119,12 +141,12 @@
         </div>
         {% endfor %}
 
-        <!-- Empty state when filter matches nothing -->
+        <!-- Empty state when filter/search matches nothing -->
         <div class="col-12 d-none text-center py-4" id="noResults">
             <div class="card blog-card">
                 <div class="card-body py-4">
                     <i class="fas fa-search fa-2x mb-3 text-muted"></i>
-                    <h5 class="text-muted">No tutorials in this category yet</h5>
+                    <h5 class="text-muted" id="noResultsMsg">No tutorials found</h5>
                 </div>
             </div>
         </div>
@@ -143,7 +165,7 @@
 </div>
 
 <!-- ====================================================
-     JavaScript: Slideshow + Filter + Tilt + Scroll Reveal
+     JavaScript: Slideshow + Search + Filter + Tilt + Scroll Reveal
      ==================================================== -->
 <script>
 /* ── Slideshow ── */
@@ -172,21 +194,109 @@ if (slides.length) {
     autoTimer = setInterval(() => goToSlide(currentSlide + 1), 5000);
 }
 
-/* ── Category client-side filter ── */
-function filterPosts(filter, btn) {
-    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
+/* ── Shared filter state ── */
+let activeTag   = 'all';
+let searchQuery = '';
 
-    const cards  = document.querySelectorAll('.post-card-wrap');
-    let visible  = 0;
+function applyFilters() {
+    const cards   = document.querySelectorAll('.post-card-wrap');
+    let   visible = 0;
+
     cards.forEach(card => {
-        const tags = card.dataset.tags || '';
-        const show = filter === 'all' || tags.split(',').includes(filter);
+        const tags    = card.dataset.tags  || '';
+        const title   = card.dataset.title || '';
+        const tagOk   = activeTag === 'all' || tags.split(',').includes(activeTag);
+        const queryOk = !searchQuery || title.includes(searchQuery);
+        const show    = tagOk && queryOk;
+
         card.style.display = show ? '' : 'none';
         if (show) visible++;
     });
+
     const noRes = document.getElementById('noResults');
-    if (noRes) noRes.classList.toggle('d-none', visible > 0);
+    const msg   = document.getElementById('noResultsMsg');
+    if (noRes) {
+        noRes.classList.toggle('d-none', visible > 0);
+        if (msg) {
+            msg.textContent = searchQuery
+                ? `No tutorials matching "${searchQuery}"`
+                : 'No tutorials in this category yet';
+        }
+    }
+
+    const countEl = document.getElementById('searchCount');
+    if (countEl) {
+        if (searchQuery) {
+            countEl.textContent = visible === 0
+                ? 'No results'
+                : `${visible} result${visible !== 1 ? 's' : ''}`;
+            countEl.style.opacity = '1';
+        } else {
+            countEl.style.opacity = '0';
+        }
+    }
+}
+
+/* ── Category filter ── */
+function filterPosts(filter, btn) {
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    activeTag = filter;
+    applyFilters();
+}
+
+/* ── Real-time search ── */
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+
+if (searchInput) {
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            searchQuery = searchInput.value.trim().toLowerCase();
+            searchClear.style.display = searchQuery ? '' : 'none';
+
+            /* Highlight matching text in titles */
+            highlightTitles(searchQuery);
+
+            applyFilters();
+        }, 150);
+    });
+
+    searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') clearSearch();
+    });
+
+    if (searchClear) {
+        searchClear.addEventListener('click', clearSearch);
+    }
+}
+
+function clearSearch() {
+    if (!searchInput) return;
+    searchInput.value = '';
+    searchQuery = '';
+    if (searchClear) searchClear.style.display = 'none';
+    highlightTitles('');
+    applyFilters();
+    searchInput.focus();
+}
+
+/* ── Title highlight helper ── */
+function highlightTitles(query) {
+    document.querySelectorAll('.post-card-wrap .card-title').forEach(el => {
+        const original = el.dataset.original || el.textContent;
+        el.dataset.original = original;
+
+        if (!query) {
+            el.innerHTML = original;
+            return;
+        }
+        const regex   = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        el.innerHTML  = original.replace(regex, '<mark class="search-highlight">$1</mark>');
+    });
 }
 
 /* ── 3-D tilt on cards ── */
