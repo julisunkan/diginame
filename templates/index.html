@@ -61,38 +61,59 @@
     {% endif %}
 </div>
 
-<!-- ========== SEARCH BAR ========== -->
+<!-- ========== FILTER PANEL ========== -->
 {% if posts %}
-<div class="search-bar-wrap mb-4 animate__animated animate__fadeInDown">
-    <div class="search-bar-inner">
-        <i class="fas fa-search search-icon"></i>
-        <input
-            type="text"
-            id="searchInput"
-            class="search-input"
-            placeholder="Search tutorials…"
-            autocomplete="off"
-            aria-label="Search tutorials"
-        >
-        <button class="search-clear" id="searchClear" aria-label="Clear search" style="display:none;">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="search-results-count" id="searchCount"></div>
-</div>
-{% endif %}
+<div class="filter-panel mb-5 animate__animated animate__fadeInUp">
 
-<!-- ========== CATEGORY FILTER BAR ========== -->
-{% if all_tags %}
-<div class="category-filter-bar mb-4 animate__animated animate__fadeInDown" id="filterBar">
-    <button class="category-pill active" data-filter="all" onclick="filterPosts('all', this)">
-        <i class="fas fa-layer-group me-1"></i>All
-    </button>
-    {% for tag in all_tags %}
-    <a href="{{ url_for('category', tag=tag|slugify) }}" class="category-pill" data-filter="{{ tag|slugify }}">
-        {{ tag }}
-    </a>
-    {% endfor %}
+    <!-- Panel header row -->
+    <div class="filter-panel-header">
+        <div class="filter-panel-title">
+            <i class="fas fa-sliders-h me-2"></i>Browse Tutorials
+        </div>
+        <div class="filter-panel-meta">
+            <span id="totalCount">{{ posts | length }} tutorial{{ 's' if posts | length != 1 }}</span>
+            <span class="filter-dot" id="searchCount" style="display:none;"></span>
+        </div>
+    </div>
+
+    <!-- Search row -->
+    <div class="filter-search-row">
+        <div class="search-bar-inner">
+            <i class="fas fa-search search-icon"></i>
+            <input
+                type="text"
+                id="searchInput"
+                class="search-input"
+                placeholder="Search tutorials by title…"
+                autocomplete="off"
+                aria-label="Search tutorials"
+            >
+            <button class="search-clear" id="searchClear" aria-label="Clear search" style="display:none;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Category pills row -->
+    {% if all_tags %}
+    <div class="filter-divider"></div>
+    <div class="filter-tags-row" id="filterBar">
+        <span class="filter-tags-label">
+            <i class="fas fa-tag me-1"></i>Category
+        </span>
+        <div class="filter-tags-pills">
+            <button class="category-pill active" data-filter="all" onclick="filterPosts('all', this)">
+                <i class="fas fa-layer-group me-1"></i>All
+            </button>
+            {% for tag in all_tags %}
+            <button class="category-pill" data-filter="{{ tag|slugify }}" onclick="filterPosts('{{ tag|slugify }}', this)">
+                {{ tag }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endif %}
 
@@ -224,16 +245,17 @@ function applyFilters() {
         }
     }
 
-    const countEl = document.getElementById('searchCount');
-    if (countEl) {
-        if (searchQuery) {
-            countEl.textContent = visible === 0
-                ? 'No results'
-                : `${visible} result${visible !== 1 ? 's' : ''}`;
-            countEl.style.opacity = '1';
-        } else {
-            countEl.style.opacity = '0';
+    const countEl  = document.getElementById('searchCount');
+    const totalEl  = document.getElementById('totalCount');
+    if (searchQuery || activeTag !== 'all') {
+        if (countEl) {
+            countEl.textContent = `${visible} shown`;
+            countEl.style.display = '';
         }
+        if (totalEl) totalEl.style.opacity = '.5';
+    } else {
+        if (countEl) countEl.style.display = 'none';
+        if (totalEl) totalEl.style.opacity = '1';
     }
 }
 

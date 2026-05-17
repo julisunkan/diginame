@@ -1446,3 +1446,108 @@ a.nav-link, a.navbar-brand {
     border-radius: 3px;
     padding: 0 2px;
 }
+
+/* =============================================================
+   FILTER PANEL (grid-based search + category control bar)
+   ============================================================= */
+
+.filter-panel {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto auto auto;
+}
+
+/* ── Header ── */
+.filter-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 22px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.filter-panel-title {
+    font-size: .82rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.filter-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: .82rem;
+    color: rgba(255,255,255,.55);
+}
+#totalCount { transition: opacity .25s; }
+.filter-dot {
+    background: rgba(165,180,252,.3);
+    color: #c4b5fd;
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 50px;
+    border: 1px solid rgba(165,180,252,.2);
+}
+
+/* ── Search row ── */
+.filter-search-row {
+    padding: 16px 22px;
+}
+.filter-search-row .search-bar-inner { width: 100%; }
+.filter-search-row .search-input {
+    border-radius: 12px;
+    padding: 12px 44px 12px 42px;
+    font-size: 1rem;
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.12);
+}
+.filter-search-row .search-input:focus {
+    background: rgba(255,255,255,.1);
+}
+
+/* ── Divider ── */
+.filter-divider {
+    height: 1px;
+    background: rgba(255,255,255,.08);
+    margin: 0 22px;
+}
+
+/* ── Tags row ── */
+.filter-tags-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 14px;
+    padding: 16px 22px;
+}
+.filter-tags-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.4);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    padding-top: 7px;
+}
+.filter-tags-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Mobile: stack label above pills */
+@media (max-width: 575px) {
+    .filter-tags-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .filter-panel-header { padding: 14px 16px 12px; }
+    .filter-search-row   { padding: 12px 16px; }
+    .filter-divider      { margin: 0 16px; }
+    .filter-tags-row     { padding: 12px 16px 16px; }
+}
