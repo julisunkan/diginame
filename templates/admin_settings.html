@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-white animate__animated animate__fadeInLeft">Blog Settings</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-gradient animate__animated animate__fadeInRight">← Back to Dashboard</a>
+        </div>
+
+        <div class="card blog-card animate__animated animate__fadeIn">
+            <div class="card-body">
+                <h5 class="card-title mb-4">Site Configuration</h5>
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="blog_title" class="form-label">Blog Title</label>
+                        <input type="text" class="form-control" id="blog_title" name="blog_title" value="{{ settings.blog_title }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="blog_description" class="form-label">Blog Description</label>
+                        <textarea class="form-control" id="blog_description" name="blog_description" rows="3" required>{{ settings.blog_description }}</textarea>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Color Customization</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="primary_color" class="form-label">Primary Color</label>
+                            <input type="color" class="form-control form-control-color" id="primary_color" name="primary_color" value="{{ settings.primary_color }}" title="Choose primary color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="secondary_color" class="form-label">Secondary Color</label>
+                            <input type="color" class="form-control form-control-color" id="secondary_color" name="secondary_color" value="{{ settings.secondary_color }}" title="Choose secondary color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="background_color" class="form-label">Gradient Background</label>
+                            <input type="color" class="form-control form-control-color" id="background_color" name="background_color" value="{{ settings.background_color }}" title="Choose gradient background color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="overall_background" class="form-label">Overall Background</label>
+                            <input type="color" class="form-control form-control-color" id="overall_background" name="overall_background" value="{{ settings.overall_background }}" title="Choose overall background color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="card_background" class="form-label">Card Background</label>
+                            <input type="color" class="form-control form-control-color" id="card_background" name="card_background" value="{{ settings.card_background }}" title="Choose card background color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="text_color" class="form-label">Text Color</label>
+                            <input type="color" class="form-control form-control-color" id="text_color" name="text_color" value="{{ settings.text_color }}" title="Choose text color">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="navbar_color" class="form-label">Navbar Color</label>
+                            <input type="color" class="form-control form-control-color" id="navbar_color" name="navbar_color" value="{{ settings.navbar_color }}" title="Choose navbar color">
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-gradient">Update Settings</button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

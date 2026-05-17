@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Blog{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card blog-card animate__animated animate__fadeIn">
+            {% if post.featured_image %}
+                <img src="{{ post.featured_image }}" class="card-img-top" alt="{{ post.title }}" style="height: 300px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h1 class="card-title mb-3">{{ post.title }}</h1>
+                <div class="card-text post-content">
+                    {{ post.content | safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Generation Section -->
+        <div class="card blog-card mt-4 animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <h4 class="card-title text-center mb-3">🏆 Get Your Completion Certificate</h4>
+                <p class="text-center text-muted mb-4">Enter your full name to generate a personalized certificate for completing this tutorial.</p>
+
+                <form id="certificateForm" class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="fullName" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-success btn-gradient w-100">Generate Certificate</button>
+                    </div>
+                </form>
+
+                <!-- Certificate Preview (Hidden initially) -->
+                <div id="certificatePreview" class="mt-4" style="display: none;">
+                    <div class="certificate-container">
+                        <div class="certificate">
+                            <div class="certificate-header">
+                                <h2>🎓 Certificate of Completion</h2>
+                            </div>
+                            <div class="certificate-body">
+                                <p class="mb-3">This is to certify that</p>
+                                <h3 id="certificateName" class="student-name"></h3>
+                                <p class="mb-3">has successfully completed the tutorial</p>
+                                <h4 id="certificateTitle" class="tutorial-title">"{{ post.title }}"</h4>
+                                <p class="completion-date">Date of Completion: <span id="completionDate"></span></p>
+                            </div>
+                            <div class="certificate-footer">
+                                <div class="signature-line">
+                                    <hr>
+                                    <small>Tutorial Platform</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="downloadBtn" class="btn btn-primary btn-gradient">Download Certificate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-gradient animate__animated animate__fadeInUp">
+                ← Back to Tutorial
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('certificateForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('fullName').value.trim();
+    if (!fullName) {
+        alert('Please enter your full name');
+        return;
+    }
+
+    // Update certificate with user's name
+    document.getElementById('certificateName').textContent = fullName;
+    document.getElementById('certificateTitle').textContent = '{{ post.title }}';
+    document.getElementById('completionDate').textContent = new Date().toLocaleDateString();
+
+    // Show certificate preview
+    document.getElementById('certificatePreview').style.display = 'block';
+
+    // Smooth scroll to certificate
+    document.getElementById('certificatePreview').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+});
+
+// Download functionality - server-side generation
+document.getElementById('downloadBtn').addEventListener('click', function() {
+    const studentName = document.getElementById('certificateName').textContent;
+    const postId = {{ post.id }};
+
+    if (!studentName || studentName.trim() === '') {
+        alert('Please generate the certificate first by entering your name.');
+        return;
+    }
+
+    // Create download link to server-side route
+    const encodedName = encodeURIComponent(studentName);
+    const downloadUrl = `/certificate/${postId}/${encodedName}`;
+
+    // Create temporary link and trigger download
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+});
+</script>
+{% endblock %}

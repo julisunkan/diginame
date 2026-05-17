@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Certificate - {{ site_settings.blog_title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card blog-card animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">
+                    <i class="fas fa-certificate text-primary me-2"></i>
+                    Generate Certificate
+                </h2>
+                <p class="text-center text-muted mb-4">
+                    Enter your name and select a tutorial to generate your personalized certificate of completion.
+                </p>
+
+                <form action="{{ url_for('generate_certificate') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="student_name" class="form-label">
+                            <i class="fas fa-user me-2"></i>Full Name
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="student_name" 
+                               name="student_name" 
+                               placeholder="Enter your full name" 
+                               required>
+                        <div class="form-text">This name will appear on your certificate</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="post_id" class="form-label">
+                            <i class="fas fa-book me-2"></i>Select Tutorial
+                        </label>
+                        <select class="form-select" id="post_id" name="post_id" required>
+                            <option value="">Choose a tutorial...</option>
+                            {% for post in posts %}
+                                <option value="{{ post.id }}">{{ post.title }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if not posts %}
+                            <div class="form-text text-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                No tutorials available yet. Check back later!
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" 
+                                class="btn btn-primary btn-gradient btn-lg"
+                                {% if not posts %}disabled{% endif %}>
+                            <i class="fas fa-download me-2"></i>
+                            Generate Certificate
+                        </button>
+                    </div>
+                </form>
+
+                {% if posts %}
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            How it works:
+                        </h6>
+                        <ul class="mb-0 small">
+                            <li>Enter your full name exactly as you want it to appear</li>
+                            <li>Select the tutorial you've completed</li>
+                            <li>Click generate to download your certificate</li>
+                            <li>The certificate will be downloaded as an HTML file</li>
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
