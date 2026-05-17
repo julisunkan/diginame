@@ -31,7 +31,7 @@
 <!-- All categories row -->
 {% if all_tags %}
 <div class="category-filter-bar mb-4 animate__animated animate__fadeInDown">
-    <a href="{{ url_for('index') }}" class="category-pill{% if not tag %} active{% endif %}">
+    <a href="{{ url_for('index') }}" class="category-pill">
         <i class="fas fa-layer-group me-1"></i>All
     </a>
     {% for t in all_tags %}
