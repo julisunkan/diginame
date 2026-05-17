@@ -51,6 +51,9 @@
                     <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' }}" href="{{ url_for('admin_settings') }}">
                         <i class="fas fa-cog me-2"></i>Settings
                     </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'change_password' }}" href="{{ url_for('change_password') }}">
+                        <i class="fas fa-lock me-2"></i>Password
+                    </a>
                     <a class="nav-link" href="{{ url_for('admin_logout') }}">
                         <i class="fas fa-sign-out-alt me-2"></i>Logout
                     </a>
@@ -115,6 +118,10 @@
                 <a href="{{ url_for('admin_settings') }}" class="nav-item {{ 'active' if request.endpoint == 'admin_settings' }}">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
+                </a>
+                <a href="{{ url_for('change_password') }}" class="nav-item {{ 'active' if request.endpoint == 'change_password' }}">
+                    <i class="fas fa-lock"></i>
+                    <span>Password</span>
                 </a>
             {% endif %}
             

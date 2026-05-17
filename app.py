@@ -375,6 +375,45 @@ def delete_post(id):
 # Admin settings
 # ---------------------------------------------------------------------------
 
+@app.route('/admin/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not current_password or not new_password or not confirm_password:
+            flash('All fields are required.', 'error')
+            return render_template('change_password.html')
+
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'error')
+            return render_template('change_password.html')
+
+        if len(new_password) < 8:
+            flash('New password must be at least 8 characters.', 'error')
+            return render_template('change_password.html')
+
+        try:
+            admin = fs_get_admin()
+            if not admin or not check_password_hash(admin.get('password_hash', ''), current_password):
+                flash('Current password is incorrect.', 'error')
+                return render_template('change_password.html')
+
+            db = get_db()
+            db.collection('admin').document('credentials').update({
+                'password_hash': generate_password_hash(new_password),
+            })
+            flash('Password updated successfully!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        except Exception as e:
+            logging.error(f"Error changing password: {e}")
+            flash(f'Error updating password: {e}', 'error')
+
+    return render_template('change_password.html')
+
+
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @login_required
 def admin_settings():
