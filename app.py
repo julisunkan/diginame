@@ -367,8 +367,8 @@ def admin_login():
         stored_username = 'admin'
 
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
+        username = request.form['username']
+        password = request.form['password']
         try:
             if admin and username == admin.get('username') and \
                     check_password_hash(admin.get('password_hash', ''), password):
@@ -411,11 +411,8 @@ def admin_dashboard():
 @login_required
 def new_post():
     if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        content = request.form.get('content', '').strip()
-        if not title or not content:
-            flash('Title and content are required.', 'error')
-            return redirect(url_for('new_post'))
+        title = request.form['title']
+        content = request.form['content']
         featured_image = request.form.get('featured_image', '').strip() or None
         raw_tags = request.form.get('tags', '')
         tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
@@ -441,18 +438,13 @@ def edit_post(id):
         from flask import abort
         abort(404)
     if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        content = request.form.get('content', '').strip()
-        if not title or not content:
-            flash('Title and content are required.', 'error')
-            return redirect(url_for('edit_post', id=id))
         raw_tags = request.form.get('tags', '')
         tags = [t.strip() for t in raw_tags.split(',') if t.strip()]
         try:
             fs_update_post(
                 id,
-                title,
-                content,
+                request.form['title'],
+                request.form['content'],
                 request.form.get('featured_image', '').strip() or None,
                 tags,
             )
@@ -556,15 +548,15 @@ def admin_settings():
     settings = get_site_settings()
     if request.method == 'POST':
         new_settings = SiteSettings({
-            'blog_title': request.form.get('blog_title', '').strip() or settings.blog_title,
-            'blog_description': request.form.get('blog_description', '').strip() or settings.blog_description,
-            'primary_color': request.form.get('primary_color', '').strip() or settings.primary_color,
-            'secondary_color': request.form.get('secondary_color', '').strip() or settings.secondary_color,
-            'background_color': request.form.get('background_color', '').strip() or settings.background_color,
-            'overall_background': request.form.get('overall_background', '').strip() or settings.overall_background,
-            'card_background': request.form.get('card_background', '').strip() or settings.card_background,
-            'text_color': request.form.get('text_color', '').strip() or settings.text_color,
-            'navbar_color': request.form.get('navbar_color', '').strip() or settings.navbar_color,
+            'blog_title': request.form['blog_title'],
+            'blog_description': request.form['blog_description'],
+            'primary_color': request.form['primary_color'],
+            'secondary_color': request.form['secondary_color'],
+            'background_color': request.form['background_color'],
+            'overall_background': request.form['overall_background'],
+            'card_background': request.form['card_background'],
+            'text_color': request.form['text_color'],
+            'navbar_color': request.form['navbar_color'],
         })
         try:
             fs_save_settings(new_settings.to_dict())
@@ -704,7 +696,7 @@ def certificate_form():
 
 @app.route('/generate_certificate', methods=['POST'])
 def generate_certificate():
-    student_name = request.form.get('student_name', '').strip()
+    student_name = request.form['student_name'].strip()
     post_id = request.form.get('post_id', '').strip()
     if not student_name:
         flash('Please enter your full name.', 'error')
@@ -835,36 +827,12 @@ def download_certificate(post_id, student_name):
 
 
 # ---------------------------------------------------------------------------
-# Error handlers
-# ---------------------------------------------------------------------------
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('error.html', error_code=404,
-                           error_title='Page Not Found',
-                           error_msg='The page you\'re looking for doesn\'t exist or has been moved.'), 404
-
-
-@app.errorhandler(500)
-def internal_error(e):
-    logging.error(f"500 error: {e}")
-    return render_template('error.html', error_code=500,
-                           error_title='Server Error',
-                           error_msg='Something went wrong on our end. Please try again later.'), 500
-
-
-# ---------------------------------------------------------------------------
 # Dynamic CSS
 # ---------------------------------------------------------------------------
 
 def hex_to_rgb(hex_color):
-    try:
-        hex_color = hex_color.lstrip('#')
-        if len(hex_color) != 6:
-            return '79, 70, 229'
-        return ', '.join(str(int(hex_color[i:i + 2], 16)) for i in (0, 2, 4))
-    except (ValueError, TypeError):
-        return '79, 70, 229'
+    hex_color = hex_color.lstrip('#')
+    return ', '.join(str(int(hex_color[i:i + 2], 16)) for i in (0, 2, 4))
 
 
 @app.route('/dynamic-styles.css')

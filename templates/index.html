@@ -61,235 +61,91 @@
     {% endif %}
 </div>
 
-<!-- ========== POST STRIP GRID ========== -->
-{% if posts %}
-<div class="post-strip-section mb-5 animate__animated animate__fadeInUp">
-    <div class="post-strip-header">
-        <div class="post-strip-title">
-            <i class="fas fa-fire me-2" style="color:#f97316;"></i>All Tutorials
-            <span class="post-strip-count">{{ posts | length }}</span>
-        </div>
-        <div class="post-strip-arrows">
-            <button class="strip-arrow" id="stripPrev" aria-label="Scroll left">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="strip-arrow" id="stripNext" aria-label="Scroll right">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-    </div>
-
-    <div class="post-strip-track-wrap">
-        <div class="post-strip-track" id="postStripTrack">
-            {% for post in posts %}
-            <a href="{{ url_for('post_detail', id=post.id) }}" class="post-strip-card" data-index="{{ loop.index0 }}">
-                <div class="post-strip-thumb">
-                    {% if post.featured_image %}
-                    <img src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
-                    {% else %}
-                    <div class="post-strip-thumb-placeholder">
-                        <i class="fas fa-book-open"></i>
-                    </div>
-                    {% endif %}
-                    <div class="post-strip-thumb-overlay"></div>
-                    {% if post.tags %}
-                    <span class="post-strip-tag">{{ post.tags[0] }}</span>
-                    {% endif %}
-                </div>
-                <div class="post-strip-info">
-                    <p class="post-strip-name">{{ post.title | truncate(52, true, '…') }}</p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- ========== FILTER PANEL ========== -->
-{% if posts %}
-<div class="filter-panel mb-5 animate__animated animate__fadeInUp">
-
-    <!-- Panel header row -->
-    <div class="filter-panel-header">
-        <div class="filter-panel-title">
-            <i class="fas fa-sliders-h me-2"></i>Browse Tutorials
-        </div>
-        <div class="filter-panel-meta">
-            <span id="totalCount">{{ posts | length }} tutorial{{ 's' if posts | length != 1 }}</span>
-            <span class="filter-dot" id="searchCount" style="display:none;"></span>
-        </div>
-    </div>
-
-    <!-- Search row -->
-    <div class="filter-search-row">
-        <div class="search-bar-inner">
-            <i class="fas fa-search search-icon"></i>
-            <input
-                type="text"
-                id="searchInput"
-                class="search-input"
-                placeholder="Search tutorials by title…"
-                autocomplete="off"
-                aria-label="Search tutorials"
-            >
-            <button class="search-clear" id="searchClear" aria-label="Clear search" style="display:none;">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Category pills row -->
-    {% if all_tags %}
-    <div class="filter-divider"></div>
-    <div class="filter-tags-row" id="filterBar">
-        <span class="filter-tags-label">
-            <i class="fas fa-tag me-1"></i>Category
-        </span>
-        <div class="filter-tags-pills">
-            <button class="category-pill active" data-filter="all" onclick="filterPosts('all', this)">
-                <i class="fas fa-layer-group me-1"></i>All
-            </button>
-            {% for tag in all_tags %}
-            <button class="category-pill" data-filter="{{ tag|slugify }}" onclick="filterPosts('{{ tag|slugify }}', this)">
-                {{ tag }}
-            </button>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
+<!-- ========== CATEGORY FILTER BAR ========== -->
+{% if all_tags %}
+<div class="category-filter-bar mb-4 animate__animated animate__fadeInDown" id="filterBar">
+    <button class="category-pill active" data-filter="all" onclick="filterPosts('all', this)">
+        <i class="fas fa-layer-group me-1"></i>All
+    </button>
+    {% for tag in all_tags %}
+    <a href="{{ url_for('category', tag=tag|slugify) }}" class="category-pill" data-filter="{{ tag|slugify }}">
+        {{ tag }}
+    </a>
+    {% endfor %}
 </div>
 {% endif %}
 
 <!-- ========== POSTS GRID ========== -->
-{% set _accents   = ['#4f46e5','#7c3aed','#db2777','#0891b2','#059669','#d97706'] %}
-{% set _rgbs      = ['79,70,229','124,58,237','219,39,119','8,145,178','5,150,105','217,119,6'] %}
-{% set _icons     = ['fa-code','fa-palette','fa-rocket','fa-database','fa-brain','fa-cube'] %}
-
-<div class="tut-grid" id="postsGrid">
+<div class="row g-4" id="postsGrid">
     {% if posts %}
         {% for post in posts %}
-        {% set _a  = _accents[loop.index0 % 6] %}
-        {% set _r  = _rgbs[loop.index0 % 6] %}
-        {% set _ic = _icons[loop.index0 % 6] %}
-        {% set _words = (post.content | striptags | wordcount) %}
-        {% set _mins  = [(_words // 200), 1] | max %}
-
-        <div class="post-card-wrap tut-outer"
+        <div class="col-md-6 col-lg-4 post-card-wrap reveal-card"
              data-tags="{{ post.tags | map('lower') | join(',') }}"
-             data-title="{{ post.title | lower }}"
-             style="--card-accent:{{ _a }};--card-rgb:{{ _r }};animation-delay:{{ loop.index0 * 0.06 }}s">
+             style="animation-delay:{{ loop.index0 * 0.07 }}s">
+            <div class="card blog-card h-100 tilt-card">
+                {% if post.featured_image %}
+                <div class="card-img-wrap">
+                    <img src="{{ post.featured_image }}" class="card-img-top" alt="{{ post.title }}"
+                         loading="lazy" style="height:200px;object-fit:cover;">
+                    <div class="img-overlay"></div>
+                </div>
+                {% else %}
+                <div class="card-img-placeholder">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                {% endif %}
 
-            <a href="{{ url_for('post_detail', id=post.id) }}" class="tut-card-h">
-
-                <!-- Left accent stripe -->
-                <div class="tut-stripe"></div>
-
-                <!-- Thumbnail column -->
-                <div class="tut-img-col">
-                    {% if post.featured_image %}
-                    <img src="{{ post.featured_image }}" alt="{{ post.title }}" loading="lazy">
-                    {% else %}
-                    <div class="tut-img-placeholder">
-                        <i class="fas {{ _ic }}"></i>
+                <div class="card-body d-flex flex-column">
+                    {% if post.tags %}
+                    <div class="post-tags mb-2">
+                        {% for tag in post.tags %}
+                        <a href="{{ url_for('category', tag=tag|slugify) }}" class="tag-chip">{{ tag }}</a>
+                        {% endfor %}
                     </div>
                     {% endif %}
-                    <div class="tut-img-overlay"></div>
-                </div>
 
-                <!-- Content column -->
-                <div class="tut-content-col">
-                    <div class="tut-top-row">
-                        <span class="tut-num">{{ '%02d' % loop.index }}</span>
-                        <div class="tut-tags-row">
-                            {% for tag in post.tags[:2] %}
-                            <span class="tut-tag">{{ tag }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <h3 class="tut-title card-title"
-                        data-original="{{ post.title }}">{{ post.title }}</h3>
-
-                    <p class="tut-excerpt">
-                        {{ (post.content | striptags)[:120] }}{% if post.content|length > 120 %}…{% endif %}
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    <p class="card-text flex-grow-1">
+                        {{ (post.content | striptags)[:130] }}{% if post.content|length > 130 %}…{% endif %}
                     </p>
 
-                    <div class="tut-footer">
-                        <span class="tut-read-time">
-                            <i class="fas fa-clock me-1"></i>{{ _mins }} min read
-                        </span>
-                        <span class="tut-cta">
+                    <div class="d-flex justify-content-end mt-3">
+                        <a href="{{ url_for('post_detail', id=post.id) }}" class="btn btn-sm btn-gradient">
                             Read <i class="fas fa-arrow-right ms-1"></i>
-                        </span>
+                        </a>
                     </div>
                 </div>
-
-                <!-- Hover glow -->
-                <div class="tut-glow"></div>
-            </a>
+            </div>
         </div>
         {% endfor %}
 
-        <!-- Empty state when filter/search matches nothing -->
-        <div class="tut-noresults d-none" id="noResults">
-            <i class="fas fa-search fa-2x mb-3" style="opacity:.4;"></i>
-            <h5 id="noResultsMsg" style="color:rgba(255,255,255,.5);">No tutorials found</h5>
+        <!-- Empty state when filter matches nothing -->
+        <div class="col-12 d-none text-center py-4" id="noResults">
+            <div class="card blog-card">
+                <div class="card-body py-4">
+                    <i class="fas fa-search fa-2x mb-3 text-muted"></i>
+                    <h5 class="text-muted">No tutorials in this category yet</h5>
+                </div>
+            </div>
         </div>
 
     {% else %}
-        <div class="tut-noresults">
-            <i class="fas fa-book-open fa-3x mb-3" style="opacity:.35;"></i>
-            <h5 style="color:rgba(255,255,255,.5);">No tutorials yet — check back soon!</h5>
+        <div class="col-12 text-center">
+            <div class="card blog-card animate__animated animate__fadeIn">
+                <div class="card-body py-5">
+                    <i class="fas fa-book-open fa-3x mb-3 text-muted"></i>
+                    <h5 class="card-title">No Posts Yet</h5>
+                    <p class="card-text">Check back later for new tutorials!</p>
+                </div>
+            </div>
         </div>
     {% endif %}
 </div>
 
 <!-- ====================================================
-     JavaScript: Slideshow + Search + Filter + Tilt + Scroll Reveal
+     JavaScript: Slideshow + Filter + Tilt + Scroll Reveal
      ==================================================== -->
 <script>
-/* ── Post Strip Scroll ── */
-(function() {
-    const track  = document.getElementById('postStripTrack');
-    const prev   = document.getElementById('stripPrev');
-    const next   = document.getElementById('stripNext');
-    if (!track) return;
-
-    const STEP = () => track.querySelector('.post-strip-card')?.offsetWidth + 16 || 220;
-
-    function updateArrows() {
-        if (!prev || !next) return;
-        prev.style.opacity = track.scrollLeft <= 4 ? '0.3' : '1';
-        next.style.opacity = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4 ? '0.3' : '1';
-    }
-
-    if (prev) prev.addEventListener('click', () => {
-        track.scrollBy({ left: -STEP() * 2, behavior: 'smooth' });
-    });
-    if (next) next.addEventListener('click', () => {
-        track.scrollBy({ left: STEP() * 2, behavior: 'smooth' });
-    });
-
-    track.addEventListener('scroll', updateArrows, { passive: true });
-    updateArrows();
-
-    /* drag-to-scroll on desktop */
-    let isDown = false, startX, scrollLeft;
-    track.addEventListener('mousedown', e => {
-        isDown = true; track.classList.add('dragging');
-        startX = e.pageX - track.offsetLeft;
-        scrollLeft = track.scrollLeft;
-    });
-    document.addEventListener('mouseup',   () => { isDown = false; track.classList.remove('dragging'); });
-    track.addEventListener('mousemove', e => {
-        if (!isDown) return;
-        e.preventDefault();
-        track.scrollLeft = scrollLeft - (e.pageX - track.offsetLeft - startX);
-    });
-})();
-
 /* ── Slideshow ── */
 let currentSlide = 0;
 const slides    = document.querySelectorAll('.hero-slide');
@@ -316,110 +172,21 @@ if (slides.length) {
     autoTimer = setInterval(() => goToSlide(currentSlide + 1), 5000);
 }
 
-/* ── Shared filter state ── */
-let activeTag   = 'all';
-let searchQuery = '';
-
-function applyFilters() {
-    const cards   = document.querySelectorAll('.post-card-wrap');
-    let   visible = 0;
-
-    cards.forEach(card => {
-        const tags    = card.dataset.tags  || '';
-        const title   = card.dataset.title || '';
-        const tagOk   = activeTag === 'all' || tags.split(',').includes(activeTag);
-        const queryOk = !searchQuery || title.includes(searchQuery);
-        const show    = tagOk && queryOk;
-
-        card.style.display = show ? '' : 'none';
-        if (show) visible++;
-    });
-
-    const noRes = document.getElementById('noResults');
-    const msg   = document.getElementById('noResultsMsg');
-    if (noRes) {
-        noRes.classList.toggle('d-none', visible > 0);
-        if (msg) {
-            msg.textContent = searchQuery
-                ? `No tutorials matching "${searchQuery}"`
-                : 'No tutorials in this category yet';
-        }
-    }
-
-    const countEl  = document.getElementById('searchCount');
-    const totalEl  = document.getElementById('totalCount');
-    if (searchQuery || activeTag !== 'all') {
-        if (countEl) {
-            countEl.textContent = `${visible} shown`;
-            countEl.style.display = '';
-        }
-        if (totalEl) totalEl.style.opacity = '.5';
-    } else {
-        if (countEl) countEl.style.display = 'none';
-        if (totalEl) totalEl.style.opacity = '1';
-    }
-}
-
-/* ── Category filter ── */
+/* ── Category client-side filter ── */
 function filterPosts(filter, btn) {
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    activeTag = filter;
-    applyFilters();
-}
 
-/* ── Real-time search ── */
-const searchInput = document.getElementById('searchInput');
-const searchClear = document.getElementById('searchClear');
-
-if (searchInput) {
-    let debounceTimer;
-
-    searchInput.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            searchQuery = searchInput.value.trim().toLowerCase();
-            searchClear.style.display = searchQuery ? '' : 'none';
-
-            /* Highlight matching text in titles */
-            highlightTitles(searchQuery);
-
-            applyFilters();
-        }, 150);
+    const cards  = document.querySelectorAll('.post-card-wrap');
+    let visible  = 0;
+    cards.forEach(card => {
+        const tags = card.dataset.tags || '';
+        const show = filter === 'all' || tags.split(',').includes(filter);
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
     });
-
-    searchInput.addEventListener('keydown', e => {
-        if (e.key === 'Escape') clearSearch();
-    });
-
-    if (searchClear) {
-        searchClear.addEventListener('click', clearSearch);
-    }
-}
-
-function clearSearch() {
-    if (!searchInput) return;
-    searchInput.value = '';
-    searchQuery = '';
-    if (searchClear) searchClear.style.display = 'none';
-    highlightTitles('');
-    applyFilters();
-    searchInput.focus();
-}
-
-/* ── Title highlight helper ── */
-function highlightTitles(query) {
-    document.querySelectorAll('.post-card-wrap .card-title').forEach(el => {
-        const original = el.dataset.original || el.textContent;
-        el.dataset.original = original;
-
-        if (!query) {
-            el.innerHTML = original;
-            return;
-        }
-        const regex   = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-        el.innerHTML  = original.replace(regex, '<mark class="search-highlight">$1</mark>');
-    });
+    const noRes = document.getElementById('noResults');
+    if (noRes) noRes.classList.toggle('d-none', visible > 0);
 }
 
 /* ── 3-D tilt on cards ── */
