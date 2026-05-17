@@ -1,105 +1,227 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
+import json
+import logging
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime, timedelta
 from config import config
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
 
+logging.basicConfig(level=logging.DEBUG)
 
-class Base(DeclarativeBase):
-    pass
+# ---------------------------------------------------------------------------
+# Firebase initialisation
+# ---------------------------------------------------------------------------
+
+_firestore_client = None
+
+def get_db():
+    """Return a Firestore client, initialising Firebase on first call."""
+    global _firestore_client
+    if _firestore_client is not None:
+        return _firestore_client
+
+    service_account_raw = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
+    if not service_account_raw:
+        raise RuntimeError(
+            "FIREBASE_SERVICE_ACCOUNT environment variable is not set. "
+            "Add your Firebase service-account JSON as that secret."
+        )
+
+    import firebase_admin
+    from firebase_admin import credentials, firestore as fb_firestore
+
+    if not firebase_admin._apps:
+        try:
+            service_account_info = json.loads(service_account_raw)
+            cred = credentials.Certificate(service_account_info)
+        except (json.JSONDecodeError, ValueError):
+            cred = credentials.Certificate(service_account_raw)
+        firebase_admin.initialize_app(cred)
+
+    _firestore_client = fb_firestore.client()
+    return _firestore_client
 
 
-db = SQLAlchemy(model_class=Base)
+# ---------------------------------------------------------------------------
+# Lightweight data classes (replicate the SQLAlchemy model interface so that
+# existing Jinja templates work without modification)
+# ---------------------------------------------------------------------------
+
+class Post:
+    def __init__(self, doc_id, data):
+        self.id = doc_id
+        self.title = data.get('title', '')
+        self.content = data.get('content', '')
+        self.featured_image = data.get('featured_image') or None
+        raw_ts = data.get('created_at')
+        if isinstance(raw_ts, datetime):
+            self.created_at = raw_ts
+        else:
+            self.created_at = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            'title': self.title,
+            'content': self.content,
+            'featured_image': self.featured_image,
+            'created_at': self.created_at,
+        }
+
+
+DEFAULT_SETTINGS = {
+    'blog_title': 'Blog CMS',
+    'blog_description': 'Welcome to Our Blog',
+    'primary_color': '#667eea',
+    'secondary_color': '#764ba2',
+    'background_color': '#667eea',
+    'overall_background': '#1a1a2e',
+    'card_background': '#ffffff',
+    'text_color': '#333333',
+    'navbar_color': '#000000',
+}
+
+
+class SiteSettings:
+    def __init__(self, data=None):
+        d = {**DEFAULT_SETTINGS, **(data or {})}
+        self.blog_title = d['blog_title']
+        self.blog_description = d['blog_description']
+        self.primary_color = d['primary_color']
+        self.secondary_color = d['secondary_color']
+        self.background_color = d['background_color']
+        self.overall_background = d['overall_background']
+        self.card_background = d['card_background']
+        self.text_color = d['text_color']
+        self.navbar_color = d['navbar_color']
+
+    def to_dict(self):
+        return {
+            'blog_title': self.blog_title,
+            'blog_description': self.blog_description,
+            'primary_color': self.primary_color,
+            'secondary_color': self.secondary_color,
+            'background_color': self.background_color,
+            'overall_background': self.overall_background,
+            'card_background': self.card_background,
+            'text_color': self.text_color,
+            'navbar_color': self.navbar_color,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Firestore helpers
+# ---------------------------------------------------------------------------
+
+def fs_get_all_posts():
+    db = get_db()
+    docs = db.collection('posts').order_by(
+        'created_at', direction='DESCENDING'
+    ).stream()
+    return [Post(doc.id, doc.to_dict()) for doc in docs]
+
+
+def fs_get_post(post_id):
+    db = get_db()
+    doc = db.collection('posts').document(str(post_id)).get()
+    if not doc.exists:
+        return None
+    return Post(doc.id, doc.to_dict())
+
+
+def fs_create_post(title, content, featured_image=None):
+    db = get_db()
+    data = {
+        'title': title,
+        'content': content,
+        'featured_image': featured_image,
+        'created_at': datetime.utcnow(),
+    }
+    _, doc_ref = db.collection('posts').add(data)
+    return doc_ref.id
+
+
+def fs_update_post(post_id, title, content, featured_image=None):
+    db = get_db()
+    db.collection('posts').document(str(post_id)).update({
+        'title': title,
+        'content': content,
+        'featured_image': featured_image,
+    })
+
+
+def fs_delete_post(post_id):
+    db = get_db()
+    db.collection('posts').document(str(post_id)).delete()
+
+
+def fs_get_settings():
+    db = get_db()
+    doc = db.collection('settings').document('main').get()
+    return SiteSettings(doc.to_dict() if doc.exists else None)
+
+
+def fs_save_settings(data_dict):
+    db = get_db()
+    db.collection('settings').document('main').set(data_dict)
+
+
+def fs_get_admin():
+    """Return admin credentials dict from Firestore."""
+    db = get_db()
+    doc = db.collection('admin').document('credentials').get()
+    return doc.to_dict() if doc.exists else None
+
+
+def fs_bootstrap_admin():
+    """
+    If no admin document exists yet, create one from ADMIN_USERNAME /
+    ADMIN_PASSWORD environment variables and store the hashed password.
+    """
+    db = get_db()
+    doc = db.collection('admin').document('credentials').get()
+    if doc.exists:
+        return
+    username = os.environ.get('ADMIN_USERNAME', 'admin')
+    password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    db.collection('admin').document('credentials').set({
+        'username': username,
+        'password_hash': generate_password_hash(password),
+    })
+    logging.info("Admin credentials bootstrapped into Firestore.")
+
+
+# ---------------------------------------------------------------------------
+# Flask app
+# ---------------------------------------------------------------------------
 
 def create_app(config_name='default'):
-    """Application factory function."""
     app = Flask(__name__)
-    
-    # Load configuration
     config_name = config_name or os.environ.get('FLASK_ENV', 'default')
     config_class = config[config_name]
-    
     if config_name == 'production':
-        # Instantiate production config to enforce environment variables
         app.config.from_object(config_class())
     else:
-        # Use class for development
         app.config.from_object(config_class)
-    
-    # Setup ProxyFix for HTTPS handling (needed for PythonAnywhere)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-    
-    # Initialize CSRF protection
-    csrf = CSRFProtect(app)
-    
-    # Initialize the database with the app
-    db.init_app(app)
-    
+    CSRFProtect(app)
     return app
 
-# Create the app instance
-# In production, this will use environment variable FLASK_ENV
+
 app = create_app(os.environ.get('FLASK_ENV', 'development'))
 
-# Database models
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    featured_image = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+# Bootstrap admin credentials into Firestore on startup (no-op if already set)
+try:
+    fs_bootstrap_admin()
+except Exception as e:
+    logging.warning(f"Could not bootstrap admin credentials: {e}")
 
-    def __repr__(self):
-        return f'<Post {self.id}: {self.title}>'
 
-class SiteSettings(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    blog_title = db.Column(db.String(100), nullable=False, default='Blog CMS')
-    blog_description = db.Column(db.Text, nullable=False, default='Welcome to Our Blog')
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
 
-    # Color customization fields
-    primary_color = db.Column(db.String(7), nullable=False, default='#667eea')
-    secondary_color = db.Column(db.String(7), nullable=False, default='#764ba2')
-    background_color = db.Column(db.String(7), nullable=False, default='#667eea')
-    overall_background = db.Column(db.String(7), nullable=False, default='#1a1a2e')
-    card_background = db.Column(db.String(7), nullable=False, default='#ffffff')
-    text_color = db.Column(db.String(7), nullable=False, default='#333333')
-    navbar_color = db.Column(db.String(7), nullable=False, default='#000000')
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-# Ensure instance directory exists for SQLite database
-os.makedirs('instance', exist_ok=True)
-
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception:
-        db.session.rollback()
-    # Create default site settings if none exist
-    try:
-        if not SiteSettings.query.first():
-            default_settings = SiteSettings()
-            default_settings.blog_title = 'Blog CMS'
-            default_settings.blog_description = 'Welcome to Our Blog'
-            default_settings.primary_color = '#667eea'
-            default_settings.secondary_color = '#764ba2'
-            default_settings.background_color = '#667eea'
-            default_settings.overall_background = '#1a1a2e'
-            default_settings.card_background = '#ffffff'
-            default_settings.text_color = '#333333'
-            default_settings.navbar_color = '#000000'
-            db.session.add(default_settings)
-            db.session.commit()
-    except Exception:
-        db.session.rollback()
-
-# Authentication decorator
 def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session:
@@ -108,67 +230,71 @@ def login_required(f):
     decorated_function.__name__ = f.__name__
     return decorated_function
 
-# Helper function to get site settings
-def get_site_settings():
-    settings = SiteSettings.query.first()
-    if not settings:
-        settings = SiteSettings()
-        settings.blog_title = 'Blog CMS'
-        settings.blog_description = 'Welcome to Our Blog'
-        settings.primary_color = '#667eea'
-        settings.secondary_color = '#764ba2'
-        settings.background_color = '#667eea'
-        settings.overall_background = '#1a1a2e'
-        settings.card_background = '#ffffff'
-        settings.text_color = '#333333'
-        settings.navbar_color = '#000000'
-        db.session.add(settings)
-        db.session.commit()
-    return settings
 
-# Template context processor to make site settings available to all templates
+# ---------------------------------------------------------------------------
+# Context processor — site settings available in every template
+# ---------------------------------------------------------------------------
+
+def get_site_settings():
+    try:
+        return fs_get_settings()
+    except Exception as e:
+        logging.warning(f"Could not load site settings: {e}")
+        return SiteSettings()
+
+
 @app.context_processor
 def inject_site_settings():
     return {'site_settings': get_site_settings()}
 
+
+# ---------------------------------------------------------------------------
 # Public routes
+# ---------------------------------------------------------------------------
+
 @app.route('/')
 def index():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
+    try:
+        posts = fs_get_all_posts()
+    except Exception as e:
+        logging.error(f"Error loading posts: {e}")
+        posts = []
     return render_template('index.html', posts=posts)
 
-@app.route('/post/<int:id>')
+
+@app.route('/post/<string:id>')
 def post_detail(id):
-    post = Post.query.get_or_404(id)
+    post = fs_get_post(id)
+    if post is None:
+        from flask import abort
+        abort(404)
     return render_template('post_detail.html', post=post)
 
+
+# ---------------------------------------------------------------------------
 # Admin authentication
+# ---------------------------------------------------------------------------
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        # Get stored admin credentials
-        admin_username = app.config['ADMIN_USERNAME']
-        admin_password_hash = app.config.get('ADMIN_PASSWORD_HASH')
-        
-        # If no hash is stored, check against plain password (development only)
-        if admin_password_hash:
-            password_valid = check_password_hash(admin_password_hash, password)
-        else:
-            # Fallback to plain password for development
-            password_valid = password == app.config['ADMIN_PASSWORD']
-        
-        if username == admin_username and password_valid:
-            session['logged_in'] = True
-            session.permanent = True
-            flash('Logged in successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid credentials!', 'error')
-    
+        try:
+            admin = fs_get_admin()
+            if admin and username == admin.get('username') and \
+                    check_password_hash(admin.get('password_hash', ''), password):
+                session['logged_in'] = True
+                session.permanent = True
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('admin_dashboard'))
+        except Exception as e:
+            logging.error(f"Login error: {e}")
+            flash('Could not verify credentials. Check Firebase configuration.', 'error')
+            return render_template('login.html')
+        flash('Invalid credentials!', 'error')
     return render_template('login.html')
+
 
 @app.route('/admin/logout')
 @login_required
@@ -177,12 +303,21 @@ def admin_logout():
     flash('Logged out successfully!', 'success')
     return redirect(url_for('index'))
 
-# Admin dashboard
+
+# ---------------------------------------------------------------------------
+# Admin dashboard & post management
+# ---------------------------------------------------------------------------
+
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
+    try:
+        posts = fs_get_all_posts()
+    except Exception as e:
+        logging.error(f"Error loading posts: {e}")
+        posts = []
     return render_template('dashboard.html', posts=posts)
+
 
 @app.route('/admin/new', methods=['GET', 'POST'])
 @login_required
@@ -191,237 +326,231 @@ def new_post():
         title = request.form['title']
         content = request.form['content']
         featured_image = request.form.get('featured_image', '').strip() or None
-        
-        post = Post()
-        post.title = title
-        post.content = content
-        post.featured_image = featured_image
-        db.session.add(post)
-        db.session.commit()
-        
-        flash('Post created successfully!', 'success')
+        try:
+            fs_create_post(title, content, featured_image)
+            flash('Post created successfully!', 'success')
+        except Exception as e:
+            logging.error(f"Error creating post: {e}")
+            flash(f'Error creating post: {e}', 'error')
         return redirect(url_for('admin_dashboard'))
-    
     return render_template('new_post.html')
 
-@app.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
+
+@app.route('/admin/edit/<string:id>', methods=['GET', 'POST'])
 @login_required
 def edit_post(id):
-    post = Post.query.get_or_404(id)
-    
+    post = fs_get_post(id)
+    if post is None:
+        from flask import abort
+        abort(404)
     if request.method == 'POST':
-        post.title = request.form['title']
-        post.content = request.form['content']
-        post.featured_image = request.form.get('featured_image', '').strip() or None
-        db.session.commit()
-        
-        flash('Post updated successfully!', 'success')
+        try:
+            fs_update_post(
+                id,
+                request.form['title'],
+                request.form['content'],
+                request.form.get('featured_image', '').strip() or None,
+            )
+            flash('Post updated successfully!', 'success')
+        except Exception as e:
+            logging.error(f"Error updating post: {e}")
+            flash(f'Error updating post: {e}', 'error')
         return redirect(url_for('admin_dashboard'))
-    
     return render_template('edit_post.html', post=post)
 
-@app.route('/admin/delete/<int:id>', methods=['POST'])
+
+@app.route('/admin/delete/<string:id>', methods=['POST'])
 @login_required
 def delete_post(id):
-    post = Post.query.get_or_404(id)
-    db.session.delete(post)
-    db.session.commit()
-    
-    flash('Post deleted successfully!', 'success')
+    try:
+        fs_delete_post(id)
+        flash('Post deleted successfully!', 'success')
+    except Exception as e:
+        logging.error(f"Error deleting post: {e}")
+        flash(f'Error deleting post: {e}', 'error')
     return redirect(url_for('admin_dashboard'))
+
+
+# ---------------------------------------------------------------------------
+# Admin settings
+# ---------------------------------------------------------------------------
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @login_required
 def admin_settings():
     settings = get_site_settings()
-    
     if request.method == 'POST':
-        settings.blog_title = request.form['blog_title']
-        settings.blog_description = request.form['blog_description']
-        settings.primary_color = request.form['primary_color']
-        settings.secondary_color = request.form['secondary_color']
-        settings.background_color = request.form['background_color']
-        settings.overall_background = request.form['overall_background']
-        settings.card_background = request.form['card_background']
-        settings.text_color = request.form['text_color']
-        settings.navbar_color = request.form['navbar_color']
-        db.session.commit()
-        
-        flash('Settings updated successfully!', 'success')
+        new_settings = SiteSettings({
+            'blog_title': request.form['blog_title'],
+            'blog_description': request.form['blog_description'],
+            'primary_color': request.form['primary_color'],
+            'secondary_color': request.form['secondary_color'],
+            'background_color': request.form['background_color'],
+            'overall_background': request.form['overall_background'],
+            'card_background': request.form['card_background'],
+            'text_color': request.form['text_color'],
+            'navbar_color': request.form['navbar_color'],
+        })
+        try:
+            fs_save_settings(new_settings.to_dict())
+            flash('Settings updated successfully!', 'success')
+        except Exception as e:
+            logging.error(f"Error saving settings: {e}")
+            flash(f'Error saving settings: {e}', 'error')
         return redirect(url_for('admin_settings'))
-    
     return render_template('admin_settings.html', settings=settings)
+
+
+# ---------------------------------------------------------------------------
+# Export / Import
+# ---------------------------------------------------------------------------
 
 @app.route('/admin/export')
 @login_required
 def export_tutorials():
-    """Export all tutorials as JSON"""
-    import json
-    from flask import Response
-    from datetime import datetime
-    
-    posts = Post.query.all()
+    posts = fs_get_all_posts()
     tutorials_data = {
         'export_date': datetime.now().isoformat(),
         'total_posts': len(posts),
-        'posts': []
+        'posts': [
+            {
+                'title': p.title,
+                'content': p.content,
+                'featured_image': p.featured_image,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in posts
+        ],
     }
-    
-    for post in posts:
-        post_data = {
-            'title': post.title,
-            'content': post.content,
-            'featured_image': post.featured_image,
-            'created_at': post.created_at.isoformat() if post.created_at else None
-        }
-        tutorials_data['posts'].append(post_data)
-    
     json_data = json.dumps(tutorials_data, indent=2, ensure_ascii=False)
-    
-    response = Response(
+    return Response(
         json_data,
         mimetype='application/json',
-        headers={'Content-Disposition': f'attachment; filename=tutorials_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'}
+        headers={
+            'Content-Disposition': (
+                f'attachment; filename=tutorials_export_'
+                f'{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+            )
+        },
     )
-    
-    flash(f'Successfully exported {len(posts)} tutorials!', 'success')
-    return response
+
 
 @app.route('/admin/import', methods=['GET', 'POST'])
 @login_required
 def import_tutorials():
-    """Import tutorials from JSON file"""
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file selected!', 'error')
             return redirect(request.url)
-        
         file = request.files['file']
-        if file.filename == '':
+        if not file.filename:
             flash('No file selected!', 'error')
             return redirect(request.url)
-        
-        if not file.filename or not file.filename.lower().endswith('.json'):
+        if not file.filename.lower().endswith('.json'):
             flash('Please upload a JSON file!', 'error')
             return redirect(request.url)
-        
-        import json
-        from datetime import datetime
-        
         try:
-            # Read and parse JSON file
-            file_content = file.read().decode('utf-8')
-            data = json.loads(file_content)
-            
+            data = json.loads(file.read().decode('utf-8'))
             if 'posts' not in data:
                 flash('Invalid file format! Missing posts data.', 'error')
                 return redirect(request.url)
-            
-            imported_count = 0
-            skipped_count = 0
-            
+
+            existing_titles = {p.title for p in fs_get_all_posts()}
+            imported_count = skipped_count = 0
+
             for post_data in data['posts']:
-                # Check if required fields exist
                 if not post_data.get('title') or not post_data.get('content'):
                     skipped_count += 1
                     continue
-                
-                # Check if post with same title already exists
-                existing_post = Post.query.filter_by(title=post_data['title']).first()
-                if existing_post:
+                if post_data['title'] in existing_titles:
                     skipped_count += 1
                     continue
-                
-                # Create new post
-                new_post = Post()
-                new_post.title = post_data['title']
-                new_post.content = post_data['content']
-                new_post.featured_image = post_data.get('featured_image')
-                
-                # Parse created_at if provided, otherwise use current time
+                created_at = datetime.utcnow()
                 if post_data.get('created_at'):
                     try:
-                        new_post.created_at = datetime.fromisoformat(post_data['created_at'].replace('Z', '+00:00'))
-                    except:
-                        new_post.created_at = datetime.utcnow()
-                else:
-                    new_post.created_at = datetime.utcnow()
-                
-                db.session.add(new_post)
+                        created_at = datetime.fromisoformat(
+                            post_data['created_at'].replace('Z', '+00:00')
+                        )
+                    except Exception:
+                        pass
+                db = get_db()
+                db.collection('posts').add({
+                    'title': post_data['title'],
+                    'content': post_data['content'],
+                    'featured_image': post_data.get('featured_image'),
+                    'created_at': created_at,
+                })
+                existing_titles.add(post_data['title'])
                 imported_count += 1
-            
-            db.session.commit()
-            
+
             if imported_count > 0:
-                flash(f'Successfully imported {imported_count} tutorials! Skipped {skipped_count} duplicates or invalid entries.', 'success')
+                flash(
+                    f'Successfully imported {imported_count} tutorials! '
+                    f'Skipped {skipped_count} duplicates or invalid entries.',
+                    'success',
+                )
             else:
-                flash(f'No new tutorials imported. Skipped {skipped_count} duplicates or invalid entries.', 'warning')
-            
+                flash(
+                    f'No new tutorials imported. '
+                    f'Skipped {skipped_count} duplicates or invalid entries.',
+                    'warning',
+                )
             return redirect(url_for('admin_dashboard'))
-            
+
         except json.JSONDecodeError:
             flash('Invalid JSON file format!', 'error')
             return redirect(request.url)
         except Exception as e:
-            flash(f'Error importing tutorials: {str(e)}', 'error')
+            flash(f'Error importing tutorials: {e}', 'error')
             return redirect(request.url)
-    
+
     return render_template('import_tutorials.html')
+
+
+# ---------------------------------------------------------------------------
+# Certificate
+# ---------------------------------------------------------------------------
 
 @app.route('/certificate')
 def certificate_form():
-    """Display certificate generation form"""
-    posts = Post.query.order_by(Post.created_at.desc()).all()
+    try:
+        posts = fs_get_all_posts()
+    except Exception:
+        posts = []
     return render_template('certificate_form.html', posts=posts)
+
 
 @app.route('/generate_certificate', methods=['POST'])
 def generate_certificate():
-    """Process certificate form and redirect to certificate download"""
     student_name = request.form['student_name'].strip()
-    post_id = request.form['post_id']
-    
+    post_id = request.form.get('post_id', '').strip()
     if not student_name:
         flash('Please enter your full name.', 'error')
         return redirect(url_for('certificate_form'))
-    
     if not post_id:
         flash('Please select a tutorial.', 'error')
         return redirect(url_for('certificate_form'))
-    
-    # Validate that post_id is valid and post exists
-    try:
-        post_id = int(post_id)
-        post = Post.query.get(post_id)
-        if not post:
-            flash('Selected tutorial not found.', 'error')
-            return redirect(url_for('certificate_form'))
-    except ValueError:
-        flash('Invalid tutorial selection.', 'error')
+    post = fs_get_post(post_id)
+    if not post:
+        flash('Selected tutorial not found.', 'error')
         return redirect(url_for('certificate_form'))
-    
-    # Redirect to the existing certificate download route (Flask handles URL encoding)
     return redirect(url_for('download_certificate', post_id=post_id, student_name=student_name))
+
 
 @app.route('/manifest.json')
 def serve_manifest():
-    """Serve PWA manifest with proper MIME type"""
-    from flask import send_from_directory
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
-@app.route('/certificate/<int:post_id>/<path:student_name>')
+
+@app.route('/certificate/<string:post_id>/<path:student_name>')
 def download_certificate(post_id, student_name):
-    """Generate and download certificate server-side"""
-    from flask import Response
-    import urllib.parse
-    from datetime import datetime
-    
-    post = Post.query.get_or_404(post_id)
+    post = fs_get_post(post_id)
+    if post is None:
+        from flask import abort
+        abort(404)
     settings = get_site_settings()
-    
-    # Flask automatically decodes the URL path parameter
-    # student_name is already decoded by Flask
     completion_date = datetime.now().strftime('%B %d, %Y')
-    
+
     certificate_html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -437,7 +566,6 @@ def download_certificate(post_id, student_name):
             min-height: 100vh;
             padding: 20px;
         }}
-        
         .certificate {{
             max-width: 800px;
             margin: 50px auto;
@@ -447,127 +575,82 @@ def download_certificate(post_id, student_name):
             position: relative;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }}
-        
         .certificate::before {{
             content: '';
             position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
+            top: 20px; left: 20px; right: 20px; bottom: 20px;
             border: 3px solid {settings.secondary_color};
             pointer-events: none;
         }}
-        
-        .certificate-header {{
-            text-align: center;
-            margin-bottom: 40px;
-        }}
-        
         .certificate-title {{
-            font-size: 3rem;
-            font-weight: bold;
+            font-size: 3rem; font-weight: bold;
             color: {settings.primary_color};
-            margin-bottom: 10px;
-            letter-spacing: 3px;
+            margin-bottom: 10px; letter-spacing: 3px;
         }}
-        
         .certificate-subtitle {{
-            font-size: 1.2rem;
-            color: {settings.secondary_color};
-            margin-bottom: 30px;
+            font-size: 1.2rem; color: {settings.secondary_color}; margin-bottom: 30px;
         }}
-        
         .student-name {{
-            font-size: 2.5rem;
-            font-weight: bold;
+            font-size: 2.5rem; font-weight: bold;
             color: {settings.secondary_color};
             text-decoration: underline;
             text-decoration-color: {settings.primary_color};
             margin: 20px 0;
         }}
-        
         .tutorial-title {{
-            font-size: 1.8rem;
-            font-style: italic;
-            color: {settings.primary_color};
-            margin: 20px 0;
+            font-size: 1.8rem; font-style: italic;
+            color: {settings.primary_color}; margin: 20px 0;
         }}
-        
-        .completion-text {{
-            font-size: 1.1rem;
-            line-height: 1.8;
-            text-align: center;
-            margin: 30px 0;
-        }}
-        
-        .date-signature {{
-            display: flex;
-            justify-content: space-between;
-            margin-top: 60px;
-        }}
-        
-        .signature-line {{
-            text-align: center;
-            min-width: 200px;
-        }}
-        
-        .signature-line hr {{
-            border: 2px solid {settings.primary_color};
-            margin: 10px 0;
-        }}
-        
-        .signature-line small {{
-            color: {settings.secondary_color};
-            font-size: 0.9rem;
-        }}
+        .completion-text {{ font-size: 1.1rem; line-height: 1.8; text-align: center; margin: 30px 0; }}
+        .date-signature {{ display: flex; justify-content: space-between; margin-top: 60px; }}
+        .signature-line {{ text-align: center; min-width: 200px; }}
+        .signature-line hr {{ border: 2px solid {settings.primary_color}; margin: 10px 0; }}
+        .signature-line small {{ color: {settings.secondary_color}; font-size: 0.9rem; }}
     </style>
 </head>
 <body>
     <div class="certificate">
-        <div class="certificate-header">
+        <div class="certificate-header text-center" style="margin-bottom:40px;">
             <h1 class="certificate-title">CERTIFICATE</h1>
             <h2 class="certificate-subtitle">of Achievement</h2>
         </div>
-        
         <div class="certificate-content text-center">
             <p class="completion-text">This is to certify that</p>
-            
             <h2 class="student-name">{student_name}</h2>
-            
             <p class="completion-text">has successfully completed the tutorial</p>
-            
             <h3 class="tutorial-title">"{post.title}"</h3>
-            
             <p class="completion-text">
                 and has demonstrated proficiency in the subject matter<br>
                 on this day of <strong>{completion_date}</strong>
             </p>
         </div>
-        
         <div class="date-signature">
-            <div class="signature-line">
-                <hr>
-                <small>Date</small>
-            </div>
-            <div class="signature-line">
-                <hr>
-                <small>Tutorial Platform</small>
-            </div>
+            <div class="signature-line"><hr><small>Date</small></div>
+            <div class="signature-line"><hr><small>Tutorial Platform</small></div>
         </div>
     </div>
 </body>
 </html>
     """
-    
     response = Response(certificate_html, mimetype='text/html')
-    response.headers['Content-Disposition'] = f'attachment; filename="certificate-{student_name.replace(" ", "-").lower()}.html"'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename="certificate-{student_name.replace(" ", "-").lower()}.html"'
+    )
     return response
+
+
+# ---------------------------------------------------------------------------
+# Dynamic CSS
+# ---------------------------------------------------------------------------
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return ', '.join(str(int(hex_color[i:i + 2], 16)) for i in (0, 2, 4))
+
 
 @app.route('/dynamic-styles.css')
 def dynamic_styles():
     settings = get_site_settings()
-    
     css_content = f"""
 /* Dynamic styles based on admin settings */
 body.mobile-app-body {{
@@ -575,235 +658,124 @@ body.mobile-app-body {{
     background-attachment: fixed;
     transition: background-color 0.8s ease-in-out;
 }}
-
 .gradient-bg {{
     background: linear-gradient(135deg, {settings.background_color} 0%, {settings.secondary_color} 100%);
     animation: gradientShift 8s ease-in-out infinite;
 }}
-
 @keyframes gradientShift {{
     0%, 100% {{ background: linear-gradient(135deg, {settings.background_color} 0%, {settings.secondary_color} 100%); }}
-    50% {{ background: linear-gradient(135deg, {settings.secondary_color} 0%, {settings.primary_color} 100%); }}
+    50%  {{ background: linear-gradient(135deg, {settings.secondary_color} 0%, {settings.primary_color} 100%); }}
 }}
-
 .btn-gradient {{
     background: linear-gradient(45deg, {settings.primary_color}, {settings.secondary_color});
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
 }}
-
 .btn-gradient::before {{
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
     transition: left 0.6s ease;
 }}
-
-.btn-gradient:hover::before {{
-    left: 100%;
-}}
-
+.btn-gradient:hover::before {{ left: 100%; }}
 .btn-gradient:hover {{
     background: linear-gradient(45deg, {settings.secondary_color}, {settings.primary_color});
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 10px 25px rgba({hex_to_rgb(settings.primary_color)}, 0.3);
 }}
-
 .blog-card {{
     background: rgba({hex_to_rgb(settings.card_background)}, 0.95);
     backdrop-filter: blur(10px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }}
-
 .blog-card:hover {{
     transform: translateY(-8px) rotateX(2deg);
     box-shadow: 0 20px 40px rgba({hex_to_rgb(settings.primary_color)}, 0.2);
 }}
-
 .navbar-dark {{
     background: rgba({hex_to_rgb(settings.navbar_color)}, 0.9) !important;
-    backdrop-filter: blur(20px);
-    transition: all 0.3s ease;
+    backdrop-filter: blur(20px); transition: all 0.3s ease;
 }}
-
 .mobile-header {{
     background: rgba({hex_to_rgb(settings.card_background)}, 0.95) !important;
-    backdrop-filter: blur(20px);
-    transition: all 0.3s ease;
+    backdrop-filter: blur(20px); transition: all 0.3s ease;
 }}
-
 .bottom-nav {{
     background: rgba({hex_to_rgb(settings.card_background)}, 0.95) !important;
-    backdrop-filter: blur(20px);
-    transition: all 0.3s ease;
+    backdrop-filter: blur(20px); transition: all 0.3s ease;
 }}
-
-.nav-item {{
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}}
-
-.nav-item:hover {{
-    transform: translateY(-3px) scale(1.05);
-}}
-
+.nav-item {{ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }}
+.nav-item:hover {{ transform: translateY(-3px) scale(1.05); }}
 .nav-item.active {{
     background: linear-gradient(45deg, {settings.primary_color}, {settings.secondary_color});
-    color: white !important;
-    border-radius: 15px;
+    color: white !important; border-radius: 15px;
     box-shadow: 0 8px 20px rgba({hex_to_rgb(settings.primary_color)}, 0.3);
 }}
-
-.certificate {{
-    border: 3px solid {settings.primary_color};
-    transition: all 0.3s ease;
-}}
-
+.certificate {{ border: 3px solid {settings.primary_color}; transition: all 0.3s ease; }}
 .certificate:hover {{
     transform: scale(1.02);
     box-shadow: 0 15px 35px rgba({hex_to_rgb(settings.primary_color)}, 0.2);
 }}
-
-.certificate::before {{
-    border: 2px solid {settings.secondary_color};
-}}
-
+.certificate::before {{ border: 2px solid {settings.secondary_color}; }}
 .certificate-header h2 {{
     color: {settings.primary_color};
     animation: glow 2s ease-in-out infinite alternate;
 }}
-
 @keyframes glow {{
     from {{ text-shadow: 0 0 5px rgba({hex_to_rgb(settings.primary_color)}, 0.5); }}
-    to {{ text-shadow: 0 0 20px rgba({hex_to_rgb(settings.primary_color)}, 0.8); }}
+    to   {{ text-shadow: 0 0 20px rgba({hex_to_rgb(settings.primary_color)}, 0.8); }}
 }}
-
 .student-name {{
     color: {settings.secondary_color} !important;
     text-decoration-color: {settings.primary_color};
     animation: pulse 2s ease-in-out infinite;
 }}
-
 @keyframes pulse {{
     0%, 100% {{ transform: scale(1); }}
-    50% {{ transform: scale(1.02); }}
+    50%       {{ transform: scale(1.02); }}
 }}
-
-.tutorial-title {{
-    color: {settings.primary_color} !important;
-}}
-
-.signature-line hr {{
-    border: 1px solid {settings.primary_color};
-}}
-
-.signature-line small {{
-    color: {settings.secondary_color};
-}}
-
+.tutorial-title {{ color: {settings.primary_color} !important; }}
+.signature-line hr  {{ border: 1px solid {settings.primary_color}; }}
+.signature-line small {{ color: {settings.secondary_color}; }}
 .form-control {{
     border: 2px solid rgba({hex_to_rgb(settings.primary_color)}, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }}
-
 .form-control:focus {{
     border-color: {settings.primary_color};
     box-shadow: 0 0 0 0.2rem rgba({hex_to_rgb(settings.primary_color)}, 0.25);
     transform: scale(1.02);
 }}
-
-.text-primary {{
-    color: {settings.text_color} !important;
-}}
-
-.card-title {{
-    color: {settings.text_color};
-    transition: color 0.3s ease;
-}}
-
-.post-content {{
-    color: {settings.text_color};
-    line-height: 1.8;
-    transition: all 0.3s ease;
-}}
-
-.mobile-alert {{
-    animation: slideInDown 0.5s ease-out;
-}}
-
+.text-primary  {{ color: {settings.text_color} !important; }}
+.card-title    {{ color: {settings.text_color}; transition: color 0.3s ease; }}
+.post-content  {{ color: {settings.text_color}; line-height: 1.8; transition: all 0.3s ease; }}
+.mobile-alert  {{ animation: slideInDown 0.5s ease-out; }}
 @keyframes slideInDown {{
-    from {{
-        transform: translateY(-100%);
-        opacity: 0;
-    }}
-    to {{
-        transform: translateY(0);
-        opacity: 1;
-    }}
+    from {{ transform: translateY(-100%); opacity: 0; }}
+    to   {{ transform: translateY(0); opacity: 1; }}
 }}
-
-.featured-image {{
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}}
-
-.featured-image:hover {{
-    transform: scale(1.05);
-}}
-
-/* Floating animation for icons */
-.nav-item i {{
-    animation: float 3s ease-in-out infinite;
-}}
-
+.featured-image {{ transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }}
+.featured-image:hover {{ transform: scale(1.05); }}
+.nav-item i {{ animation: float 3s ease-in-out infinite; }}
 @keyframes float {{
     0%, 100% {{ transform: translateY(0px); }}
-    50% {{ transform: translateY(-5px); }}
+    50%       {{ transform: translateY(-5px); }}
 }}
-
-/* Ripple effect for buttons */
-.btn-gradient {{
-    position: relative;
-    overflow: hidden;
-}}
-
+.btn-gradient {{ position: relative; overflow: hidden; }}
 .btn-gradient:active::after {{
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 0; height: 0; border-radius: 50%;
+    background: rgba(255,255,255,0.5);
     transform: translate(-50%, -50%);
     animation: ripple 0.6s ease-out;
 }}
-
 @keyframes ripple {{
-    to {{
-        width: 300px;
-        height: 300px;
-        opacity: 0;
-    }}
+    to {{ width: 300px; height: 300px; opacity: 0; }}
 }}
-
-/* Smooth transitions for all interactive elements */
-* {{
-    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
-}}
+* {{ transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease; }}
 """
-    
-    from flask import Response
     return Response(css_content, mimetype='text/css')
 
-def hex_to_rgb(hex_color):
-    """Convert hex color to RGB values for rgba usage"""
-    hex_color = hex_color.lstrip('#')
-    return ', '.join(str(int(hex_color[i:i+2], 16)) for i in (0, 2, 4))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
