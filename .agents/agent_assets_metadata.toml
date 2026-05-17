@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "8mvwitOA_pOSD8kr-4Y6L"
+uri = "file://DEPLOYMENT_INSTRUCTIONS.txt"
+type = "text"
+title = "Render + Firebase Deployment Instructions"
