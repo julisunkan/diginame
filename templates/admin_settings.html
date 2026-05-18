@@ -124,6 +124,82 @@
         </div>
     </div>
 
+    <!-- Live Preview -->
+    <div class="card blog-card mb-4 animate__animated animate__fadeIn">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
+                <i class="fas fa-eye me-2"></i>Live Preview
+            </h5>
+            <p class="text-white-50 small mb-3">Updates instantly as you change colors above — no need to save first.</p>
+
+            <!-- Mini browser chrome -->
+            <div id="livePreview" style="border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+
+                <!-- Browser bar -->
+                <div style="background:#2a2a2a;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57;display:inline-block;"></span>
+                    <span style="width:10px;height:10px;border-radius:50%;background:#febc2e;display:inline-block;"></span>
+                    <span style="width:10px;height:10px;border-radius:50%;background:#28c840;display:inline-block;"></span>
+                    <div style="flex:1;background:#3a3a3a;border-radius:6px;padding:3px 10px;margin-left:8px;font-size:.7rem;color:#aaa;">yoursite.com</div>
+                </div>
+
+                <!-- Fake Navbar -->
+                <div id="prev-navbar" style="padding:10px 20px;display:flex;align-items:center;justify-content:space-between;transition:background .3s;">
+                    <span id="prev-brand" style="font-weight:700;font-size:.85rem;color:#fff;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-graduation-cap"></i> Blog CMS
+                    </span>
+                    <div style="display:flex;gap:6px;">
+                        <span style="color:rgba(255,255,255,.75);font-size:.72rem;padding:4px 10px;border-radius:6px;">Home</span>
+                        <span id="prev-nav-active" style="color:#fff;font-size:.72rem;padding:4px 10px;border-radius:6px;transition:background .3s;">Posts</span>
+                    </div>
+                </div>
+
+                <!-- Page background -->
+                <div id="prev-bg" style="padding:18px;transition:background .3s;min-height:200px;">
+
+                    <!-- Post card -->
+                    <div id="prev-card" style="border-radius:12px;padding:16px 18px;max-width:420px;margin:0 auto;box-shadow:0 4px 18px rgba(0,0,0,.18);transition:background .3s;">
+                        <!-- Image placeholder -->
+                        <div id="prev-img" style="border-radius:8px 8px 0 0;height:72px;margin:-16px -18px 14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:rgba(255,255,255,.8);transition:background .3s;">
+                            <i class="fas fa-image"></i>
+                        </div>
+
+                        <!-- Card title -->
+                        <div id="prev-title" style="font-weight:700;font-size:.9rem;margin-bottom:6px;transition:color .3s;">Getting Started with Flask</div>
+
+                        <!-- Body text -->
+                        <div id="prev-body" style="font-size:.75rem;color:#888;margin-bottom:12px;line-height:1.5;">
+                            A short post excerpt appears here so you can see how card text looks against the card background you've chosen...
+                        </div>
+
+                        <!-- Tags row -->
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+                            <span id="prev-tag1" style="border-radius:50px;padding:2px 10px;font-size:.68rem;font-weight:600;transition:background .3s,color .3s,border-color .3s;border:1px solid;">flask</span>
+                            <span id="prev-tag2" style="border-radius:50px;padding:2px 10px;font-size:.68rem;font-weight:600;border-radius:50px;border:1px solid;transition:background .3s,color .3s,border-color .3s;">python</span>
+                        </div>
+
+                        <!-- Button -->
+                        <button id="prev-btn" type="button" style="border:none;color:#fff;border-radius:8px;padding:7px 18px;font-size:.76rem;font-weight:600;width:100%;cursor:default;transition:background .3s;">
+                            Read More <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+
+                    <!-- Category pill row below card -->
+                    <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap;">
+                        <span style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:50px;padding:4px 14px;font-size:.7rem;font-weight:600;">All</span>
+                        <span id="prev-pill" style="color:#fff;border:1px solid transparent;border-radius:50px;padding:4px 14px;font-size:.7rem;font-weight:600;transition:background .3s;">Tutorials</span>
+                        <span style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:50px;padding:4px 14px;font-size:.7rem;font-weight:600;">Tips</span>
+                    </div>
+
+                </div><!-- /prev-bg -->
+            </div><!-- /livePreview -->
+
+            <p class="text-white-50 small mt-3 mb-0 text-center">
+                <i class="fas fa-info-circle me-1"></i>This is a simplified preview. Save settings to see the full effect site-wide.
+            </p>
+        </div>
+    </div>
+
     <!-- Actions -->
     <div class="d-flex gap-3">
         <button type="submit" class="btn btn-gradient px-4 py-2 fw-semibold">
@@ -136,12 +212,93 @@
 </form>
 
 <script>
+/* ---- Utility: hex → "r, g, b" string ---- */
+function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const n = parseInt(hex, 16);
+    return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+/* ---- Collect all color inputs ---- */
+const inputs = {
+    primary:    document.getElementById('primary_color'),
+    secondary:  document.getElementById('secondary_color'),
+    navbar:     document.getElementById('navbar_color'),
+    bg:         document.getElementById('overall_background'),
+    bgStart:    document.getElementById('background_color'),
+    card:       document.getElementById('card_background'),
+    text:       document.getElementById('text_color'),
+};
+
+/* ---- Preview elements ---- */
+const prevNavbar   = document.getElementById('prev-navbar');
+const prevNavActive= document.getElementById('prev-nav-active');
+const prevBg       = document.getElementById('prev-bg');
+const prevCard     = document.getElementById('prev-card');
+const prevImg      = document.getElementById('prev-img');
+const prevTitle    = document.getElementById('prev-title');
+const prevBody     = document.getElementById('prev-body');
+const prevBtn      = document.getElementById('prev-btn');
+const prevTag1     = document.getElementById('prev-tag1');
+const prevTag2     = document.getElementById('prev-tag2');
+const prevPill     = document.getElementById('prev-pill');
+
+function updatePreview() {
+    const p  = inputs.primary.value;
+    const s  = inputs.secondary.value;
+    const nb = inputs.navbar.value;
+    const bg = inputs.bg.value;
+    const bs = inputs.bgStart.value;
+    const cb = inputs.card.value;
+    const tx = inputs.text.value;
+    const pRgb = hexToRgb(p);
+    const sRgb = hexToRgb(s);
+    const cbRgb = hexToRgb(cb);
+    const nbRgb = hexToRgb(nb);
+
+    /* Navbar */
+    prevNavbar.style.background = `rgba(${nbRgb}, 0.92)`;
+
+    /* Nav active highlight */
+    prevNavActive.style.background = `rgba(${pRgb}, 0.22)`;
+
+    /* Page gradient background */
+    prevBg.style.background = `linear-gradient(135deg, ${bs} 0%, ${s} 100%)`;
+
+    /* Card */
+    prevCard.style.background = `rgba(${cbRgb}, 0.97)`;
+
+    /* Image placeholder gradient */
+    prevImg.style.background = `linear-gradient(135deg, rgba(${pRgb},.3), rgba(${sRgb},.3))`;
+
+    /* Title */
+    prevTitle.style.color = tx;
+
+    /* Button */
+    prevBtn.style.background = `linear-gradient(45deg, ${p}, ${s})`;
+
+    /* Tags */
+    [prevTag1, prevTag2].forEach(t => {
+        t.style.background   = `rgba(${pRgb}, .18)`;
+        t.style.color        = p;
+        t.style.borderColor  = `rgba(${pRgb}, .35)`;
+    });
+
+    /* Active category pill */
+    prevPill.style.background = `linear-gradient(135deg, ${p}, ${s})`;
+}
+
+/* ---- Update hex labels AND preview on every change ---- */
 document.querySelectorAll('input[type="color"]').forEach(input => {
-    const labelId = input.id + '_label';
-    const label   = document.getElementById(labelId);
+    const label = document.getElementById(input.id + '_label');
     input.addEventListener('input', () => {
         if (label) label.textContent = input.value;
+        updatePreview();
     });
 });
+
+/* Run once on page load so preview matches current saved values */
+updatePreview();
 </script>
 {% endblock %}
