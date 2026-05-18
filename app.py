@@ -839,23 +839,32 @@ def hex_to_rgb(hex_color):
 def dynamic_styles():
     settings = get_site_settings()
     css_content = f"""
-/* Dynamic styles based on admin settings */
+/* ============================================================
+   CSS Custom Properties — set by admin settings
+   ============================================================ */
+:root {{
+    --clr-primary:       {settings.primary_color};
+    --clr-secondary:     {settings.secondary_color};
+    --clr-bg-start:      {settings.background_color};
+    --clr-overall-bg:    {settings.overall_background};
+    --clr-card:          {settings.card_background};
+    --clr-text:          {settings.text_color};
+    --clr-navbar:        {settings.navbar_color};
+    --clr-primary-rgb:   {hex_to_rgb(settings.primary_color)};
+    --clr-secondary-rgb: {hex_to_rgb(settings.secondary_color)};
+    --clr-card-rgb:      {hex_to_rgb(settings.card_background)};
+    --clr-navbar-rgb:    {hex_to_rgb(settings.navbar_color)};
+}}
+
+/* ---- Page background ---- */
 body.mobile-app-body {{
-    background: {settings.overall_background} !important;
-    background-attachment: fixed;
-    transition: background-color 0.8s ease-in-out;
+    background: linear-gradient(135deg, var(--clr-bg-start) 0%, var(--clr-secondary) 100%) !important;
+    background-attachment: fixed !important;
 }}
-.gradient-bg {{
-    background: linear-gradient(135deg, {settings.background_color} 0%, {settings.secondary_color} 100%);
-    animation: gradientShift 8s ease-in-out infinite;
-}}
-@keyframes gradientShift {{
-    0%, 100% {{ background: linear-gradient(135deg, {settings.background_color} 0%, {settings.secondary_color} 100%); }}
-    50%  {{ background: linear-gradient(135deg, {settings.secondary_color} 0%, {settings.primary_color} 100%); }}
-}}
+
+/* ---- Buttons ---- */
 .btn-gradient {{
-    background: linear-gradient(45deg, {settings.primary_color}, {settings.secondary_color});
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(45deg, var(--clr-primary), var(--clr-secondary)) !important;
     position: relative; overflow: hidden;
 }}
 .btn-gradient::before {{
@@ -866,89 +875,10 @@ body.mobile-app-body {{
 }}
 .btn-gradient:hover::before {{ left: 100%; }}
 .btn-gradient:hover {{
-    background: linear-gradient(45deg, {settings.secondary_color}, {settings.primary_color});
+    background: linear-gradient(45deg, var(--clr-secondary), var(--clr-primary)) !important;
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 10px 25px rgba({hex_to_rgb(settings.primary_color)}, 0.3);
+    box-shadow: 0 10px 25px rgba(var(--clr-primary-rgb), 0.35) !important;
 }}
-.blog-card {{
-    background: rgba({hex_to_rgb(settings.card_background)}, 0.95);
-    backdrop-filter: blur(10px);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}}
-.blog-card:hover {{
-    transform: translateY(-8px) rotateX(2deg);
-    box-shadow: 0 20px 40px rgba({hex_to_rgb(settings.primary_color)}, 0.2);
-}}
-.navbar-dark {{
-    background: rgba({hex_to_rgb(settings.navbar_color)}, 0.9) !important;
-    backdrop-filter: blur(20px); transition: all 0.3s ease;
-}}
-.mobile-header {{
-    background: rgba({hex_to_rgb(settings.card_background)}, 0.95) !important;
-    backdrop-filter: blur(20px); transition: all 0.3s ease;
-}}
-.bottom-nav {{
-    background: rgba({hex_to_rgb(settings.card_background)}, 0.95) !important;
-    backdrop-filter: blur(20px); transition: all 0.3s ease;
-}}
-.nav-item {{ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }}
-.nav-item:hover {{ transform: translateY(-3px) scale(1.05); }}
-.nav-item.active {{
-    background: linear-gradient(45deg, {settings.primary_color}, {settings.secondary_color});
-    color: white !important; border-radius: 15px;
-    box-shadow: 0 8px 20px rgba({hex_to_rgb(settings.primary_color)}, 0.3);
-}}
-.certificate {{ border: 3px solid {settings.primary_color}; transition: all 0.3s ease; }}
-.certificate:hover {{
-    transform: scale(1.02);
-    box-shadow: 0 15px 35px rgba({hex_to_rgb(settings.primary_color)}, 0.2);
-}}
-.certificate::before {{ border: 2px solid {settings.secondary_color}; }}
-.certificate-header h2 {{
-    color: {settings.primary_color};
-    animation: glow 2s ease-in-out infinite alternate;
-}}
-@keyframes glow {{
-    from {{ text-shadow: 0 0 5px rgba({hex_to_rgb(settings.primary_color)}, 0.5); }}
-    to   {{ text-shadow: 0 0 20px rgba({hex_to_rgb(settings.primary_color)}, 0.8); }}
-}}
-.student-name {{
-    color: {settings.secondary_color} !important;
-    text-decoration-color: {settings.primary_color};
-    animation: pulse 2s ease-in-out infinite;
-}}
-@keyframes pulse {{
-    0%, 100% {{ transform: scale(1); }}
-    50%       {{ transform: scale(1.02); }}
-}}
-.tutorial-title {{ color: {settings.primary_color} !important; }}
-.signature-line hr  {{ border: 1px solid {settings.primary_color}; }}
-.signature-line small {{ color: {settings.secondary_color}; }}
-.form-control {{
-    border: 2px solid rgba({hex_to_rgb(settings.primary_color)}, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}}
-.form-control:focus {{
-    border-color: {settings.primary_color};
-    box-shadow: 0 0 0 0.2rem rgba({hex_to_rgb(settings.primary_color)}, 0.25);
-    transform: scale(1.02);
-}}
-.text-primary  {{ color: {settings.text_color} !important; }}
-.card-title    {{ color: {settings.text_color}; transition: color 0.3s ease; }}
-.post-content  {{ color: {settings.text_color}; line-height: 1.8; transition: all 0.3s ease; }}
-.mobile-alert  {{ animation: slideInDown 0.5s ease-out; }}
-@keyframes slideInDown {{
-    from {{ transform: translateY(-100%); opacity: 0; }}
-    to   {{ transform: translateY(0); opacity: 1; }}
-}}
-.featured-image {{ transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }}
-.featured-image:hover {{ transform: scale(1.05); }}
-.nav-item i {{ animation: float 3s ease-in-out infinite; }}
-@keyframes float {{
-    0%, 100% {{ transform: translateY(0px); }}
-    50%       {{ transform: translateY(-5px); }}
-}}
-.btn-gradient {{ position: relative; overflow: hidden; }}
 .btn-gradient:active::after {{
     content: ''; position: absolute; top: 50%; left: 50%;
     width: 0; height: 0; border-radius: 50%;
@@ -959,11 +889,178 @@ body.mobile-app-body {{
 @keyframes ripple {{
     to {{ width: 300px; height: 300px; opacity: 0; }}
 }}
-a, button, .btn, .card, .nav-item, .form-control, .tag-chip, .category-pill {{ 
-    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; 
+
+/* ---- Cards ---- */
+.blog-card {{
+    background: rgba(var(--clr-card-rgb), 0.95) !important;
+    backdrop-filter: blur(10px);
 }}
+.blog-card:hover {{
+    box-shadow: 0 20px 40px rgba(var(--clr-primary-rgb), 0.2) !important;
+}}
+
+/* ---- Navbar ---- */
+.navbar-dark {{
+    background: rgba(var(--clr-navbar-rgb), 0.92) !important;
+    backdrop-filter: blur(20px);
+}}
+.navbar-dark .nav-link:hover,
+.navbar-dark .nav-link.active {{
+    background: rgba(var(--clr-primary-rgb), 0.2) !important;
+}}
+
+/* ---- Mobile header & bottom nav ---- */
+.mobile-header {{
+    background: rgba(var(--clr-card-rgb), 0.97) !important;
+    backdrop-filter: blur(20px);
+}}
+.bottom-nav {{
+    background: rgba(var(--clr-card-rgb), 0.97) !important;
+    backdrop-filter: blur(20px);
+}}
+
+/* ---- Nav item states ---- */
+.nav-item:hover {{
+    color: var(--clr-primary) !important;
+    background: rgba(var(--clr-primary-rgb), 0.1) !important;
+}}
+.nav-item.active {{
+    background: linear-gradient(45deg, var(--clr-primary), var(--clr-secondary)) !important;
+    color: white !important;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(var(--clr-primary-rgb), 0.3) !important;
+}}
+.nav-item::after {{ background: var(--clr-primary) !important; }}
+
+/* ---- Desktop nav link active highlight ---- */
+.app-title {{
+    background: linear-gradient(45deg, var(--clr-primary), var(--clr-secondary), var(--clr-primary)) !important;
+    background-size: 200% 200% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}}
+
+/* ---- Form controls ---- */
+.form-control:focus {{
+    border-color: var(--clr-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--clr-primary-rgb), 0.25) !important;
+}}
+.tags-input-wrap {{
+    border-color: rgba(var(--clr-primary-rgb), 0.3) !important;
+}}
+.tags-input-wrap:focus-within {{
+    border-color: var(--clr-primary) !important;
+    box-shadow: 0 0 0 3px rgba(var(--clr-primary-rgb), .2) !important;
+}}
+
+/* ---- Tag chips ---- */
+.tag-chip {{
+    background: rgba(var(--clr-primary-rgb), 0.18) !important;
+    color: var(--clr-primary) !important;
+    border-color: rgba(var(--clr-primary-rgb), 0.3) !important;
+}}
+.tag-chip:hover {{
+    background: rgba(var(--clr-primary-rgb), 0.35) !important;
+}}
+.tag-chip-active {{
+    background: linear-gradient(135deg, var(--clr-primary), var(--clr-secondary)) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}}
+.tag-chip-suggest {{
+    background: rgba(var(--clr-secondary-rgb), 0.15) !important;
+    border-color: rgba(var(--clr-secondary-rgb), 0.3) !important;
+    color: var(--clr-secondary) !important;
+}}
+.tag-chip-suggest:hover {{ background: rgba(var(--clr-secondary-rgb), 0.3) !important; }}
+.tag-chip-input {{
+    background: linear-gradient(135deg, rgba(var(--clr-primary-rgb), .3), rgba(var(--clr-secondary-rgb), .3)) !important;
+    border-color: rgba(var(--clr-secondary-rgb), .4) !important;
+}}
+
+/* ---- Category pills ---- */
+.category-pill.active {{
+    background: linear-gradient(135deg, var(--clr-primary), var(--clr-secondary)) !important;
+    box-shadow: 0 6px 20px rgba(var(--clr-primary-rgb), 0.4) !important;
+}}
+
+/* ---- Card image placeholder ---- */
+.card-img-placeholder {{
+    background: linear-gradient(135deg, rgba(var(--clr-primary-rgb), .25), rgba(var(--clr-secondary-rgb), .25)) !important;
+    color: rgba(var(--clr-primary-rgb), .7) !important;
+}}
+
+/* ---- Category page ---- */
+.category-hero {{
+    background: linear-gradient(135deg, rgba(var(--clr-primary-rgb), .3), rgba(var(--clr-secondary-rgb), .2)) !important;
+}}
+.category-badge-lg {{
+    background: linear-gradient(135deg, var(--clr-primary), var(--clr-secondary)) !important;
+    box-shadow: 0 8px 24px rgba(var(--clr-primary-rgb), .4) !important;
+}}
+
+/* ---- Hero branded slide ---- */
+.hero-slide-branded-bg {{
+    background: linear-gradient(135deg, var(--clr-primary) 0%, var(--clr-secondary) 100%) !important;
+}}
+
+/* ---- Splash screen ---- */
+.splash-screen {{
+    background: linear-gradient(135deg, var(--clr-primary) 0%, var(--clr-secondary) 100%) !important;
+}}
+
+/* ---- Certificate ---- */
+.certificate {{ border: 3px solid var(--clr-primary) !important; }}
+.certificate:hover {{ box-shadow: 0 15px 35px rgba(var(--clr-primary-rgb), 0.2) !important; }}
+.certificate::before {{ border: 2px solid var(--clr-secondary) !important; }}
+.certificate-header h2 {{
+    color: var(--clr-primary) !important;
+    animation: glow 2s ease-in-out infinite alternate;
+}}
+@keyframes glow {{
+    from {{ text-shadow: 0 0 5px rgba(var(--clr-primary-rgb), 0.5); }}
+    to   {{ text-shadow: 0 0 20px rgba(var(--clr-primary-rgb), 0.8); }}
+}}
+.student-name {{ color: var(--clr-secondary) !important; text-decoration-color: var(--clr-primary) !important; }}
+.tutorial-title {{ color: var(--clr-primary) !important; }}
+.signature-line hr {{ border-color: var(--clr-primary) !important; }}
+.signature-line small {{ color: var(--clr-secondary) !important; }}
+
+/* ---- Text colors ---- */
+.card-title    {{ color: var(--clr-text); }}
+.post-content  {{ color: var(--clr-text); line-height: 1.8; }}
+
+/* ---- Reading progress bar ---- */
+#readingProgress {{
+    background: linear-gradient(90deg, var(--clr-primary), var(--clr-secondary), var(--clr-primary)) !important;
+}}
+
+/* ---- Dashboard accents ---- */
+.stat-card:hover {{ border-color: rgba(var(--clr-primary-rgb), 0.35) !important; }}
+.stat-icon {{ color: var(--clr-primary) !important; }}
+.btn-edit {{ background: rgba(var(--clr-primary-rgb), 0.2) !important; color: var(--clr-primary) !important; }}
+.btn-edit:hover {{ background: rgba(var(--clr-primary-rgb), 0.4) !important; color: #fff !important; }}
+
+/* ---- Login avatar ---- */
+.login-avatar {{
+    background: linear-gradient(135deg, var(--clr-primary), var(--clr-secondary)) !important;
+    box-shadow: 0 12px 30px rgba(var(--clr-primary-rgb), .4) !important;
+}}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar-thumb {{
+    background: linear-gradient(var(--clr-primary), var(--clr-secondary));
+    border-radius: 4px;
+}}
+::-webkit-scrollbar {{ width: 6px; }}
+::-webkit-scrollbar-track {{ background: rgba(var(--clr-primary-rgb), .05); }}
 """
-    return Response(css_content, mimetype='text/css')
+    response = Response(css_content, mimetype='text/css')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 if __name__ == '__main__':
