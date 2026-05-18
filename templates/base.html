@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}?v={{ site_settings.primary_color | replace('#','') }}-{{ site_settings.secondary_color | replace('#','') }}-{{ site_settings.navbar_color | replace('#','') }}">
+    <link rel="stylesheet" href="{{ url_for('dynamic_styles') }}?v={{ site_settings.primary_color | replace('#','') }}-{{ site_settings.secondary_color | replace('#','') }}-{{ site_settings.navbar_color | replace('#','') }}-{{ site_settings.heading_font | replace(' ','') }}-{{ site_settings.body_font | replace(' ','') }}">
 </head>
 <body class="mobile-app-body">
 

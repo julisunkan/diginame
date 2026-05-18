@@ -94,7 +94,24 @@ DEFAULT_SETTINGS = {
     'card_background': '#ffffff',
     'text_color': '#333333',
     'navbar_color': '#000000',
+    'heading_font': 'Inter',
+    'body_font': 'Inter',
 }
+
+AVAILABLE_FONTS = [
+    {'name': 'Inter',            'category': 'sans-serif',  'google': False},
+    {'name': 'Poppins',          'category': 'sans-serif',  'google': True},
+    {'name': 'Montserrat',       'category': 'sans-serif',  'google': True},
+    {'name': 'Raleway',          'category': 'sans-serif',  'google': True},
+    {'name': 'Space Grotesk',    'category': 'sans-serif',  'google': True},
+    {'name': 'DM Sans',          'category': 'sans-serif',  'google': True},
+    {'name': 'Nunito',           'category': 'sans-serif',  'google': True},
+    {'name': 'Playfair Display', 'category': 'serif',       'google': True},
+    {'name': 'Merriweather',     'category': 'serif',       'google': True},
+    {'name': 'Lora',             'category': 'serif',       'google': True},
+    {'name': 'Source Serif 4',   'category': 'serif',       'google': True},
+    {'name': 'Roboto Mono',      'category': 'monospace',   'google': True},
+]
 
 
 class SiteSettings:
@@ -109,6 +126,8 @@ class SiteSettings:
         self.card_background = d['card_background']
         self.text_color = d['text_color']
         self.navbar_color = d['navbar_color']
+        self.heading_font = d.get('heading_font', 'Inter')
+        self.body_font = d.get('body_font', 'Inter')
 
     def to_dict(self):
         return {
@@ -121,6 +140,8 @@ class SiteSettings:
             'card_background': self.card_background,
             'text_color': self.text_color,
             'navbar_color': self.navbar_color,
+            'heading_font': self.heading_font,
+            'body_font': self.body_font,
         }
 
 
@@ -557,6 +578,8 @@ def admin_settings():
             'card_background': request.form['card_background'],
             'text_color': request.form['text_color'],
             'navbar_color': request.form['navbar_color'],
+            'heading_font': request.form.get('heading_font', 'Inter'),
+            'body_font': request.form.get('body_font', 'Inter'),
         })
         try:
             fs_save_settings(new_settings.to_dict())
@@ -850,7 +873,30 @@ def hex_to_rgb(hex_color):
 @app.route('/dynamic-styles.css')
 def dynamic_styles():
     settings = get_site_settings()
-    css_content = f"""
+
+    # Build Google Fonts @import for any non-system fonts in use
+    google_fonts = {f['name'] for f in AVAILABLE_FONTS if f['google']}
+    fonts_to_load = {f for f in [settings.heading_font, settings.body_font] if f in google_fonts}
+    if fonts_to_load:
+        family_params = '&family='.join(
+            f.replace(' ', '+') + ':ital,wght@0,400;0,600;0,700;0,800;1,400'
+            for f in sorted(fonts_to_load)
+        )
+        font_import = f"@import url('https://fonts.googleapis.com/css2?family={family_params}&display=swap');\n"
+    else:
+        font_import = ''
+
+    # CSS-safe font stacks
+    def font_stack(name):
+        fallbacks = {
+            'serif':     'Georgia, "Times New Roman", serif',
+            'monospace': '"Courier New", Courier, monospace',
+        }
+        cat = next((f['category'] for f in AVAILABLE_FONTS if f['name'] == name), 'sans-serif')
+        fb = fallbacks.get(cat, '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif')
+        return f'"{name}", {fb}'
+
+    css_content = f"""{font_import}
 /* ============================================================
    CSS Custom Properties — set by admin settings
    ============================================================ */
@@ -866,6 +912,17 @@ def dynamic_styles():
     --clr-secondary-rgb: {hex_to_rgb(settings.secondary_color)};
     --clr-card-rgb:      {hex_to_rgb(settings.card_background)};
     --clr-navbar-rgb:    {hex_to_rgb(settings.navbar_color)};
+    --font-heading:      {font_stack(settings.heading_font)};
+    --font-body:         {font_stack(settings.body_font)};
+}}
+
+/* ---- Typography ---- */
+body, p, .card-text, .post-content, .form-control, small, .small, .nav-item span, .btn {{
+    font-family: var(--font-body) !important;
+}}
+h1, h2, h3, h4, h5, h6, .card-title, .app-title, .blog-card .card-title,
+.hero-slide-title, .category-title, .navbar-brand {{
+    font-family: var(--font-heading) !important;
 }}
 
 /* ---- Page background ---- */

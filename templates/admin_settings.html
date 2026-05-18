@@ -41,6 +41,150 @@
         </div>
     </div>
 
+    <!-- Typography -->
+    <div class="card blog-card mb-4 animate__animated animate__fadeIn">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
+                <i class="fas fa-font me-2"></i>Typography
+            </h5>
+            <p class="text-white-50 small mb-4">Choose fonts for headings and body text. Changes are reflected instantly in the preview.</p>
+
+            {% set all_fonts = [
+                {'name':'Inter','category':'Sans-serif'},
+                {'name':'Poppins','category':'Sans-serif'},
+                {'name':'Montserrat','category':'Sans-serif'},
+                {'name':'Raleway','category':'Sans-serif'},
+                {'name':'Space Grotesk','category':'Sans-serif'},
+                {'name':'DM Sans','category':'Sans-serif'},
+                {'name':'Nunito','category':'Sans-serif'},
+                {'name':'Playfair Display','category':'Serif'},
+                {'name':'Merriweather','category':'Serif'},
+                {'name':'Lora','category':'Serif'},
+                {'name':'Source Serif 4','category':'Serif'},
+                {'name':'Roboto Mono','category':'Monospace'}
+            ] %}
+
+            <!-- Load all preview fonts -->
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;600;700&family=Lora:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap">
+
+            <input type="hidden" name="heading_font" id="heading_font" value="{{ settings.heading_font }}">
+            <input type="hidden" name="body_font"    id="body_font"    value="{{ settings.body_font }}">
+
+            <div class="row g-4">
+                <!-- Heading Font -->
+                <div class="col-12 col-md-6">
+                    <p class="text-white fw-semibold mb-2 small text-uppercase" style="letter-spacing:.05em;">
+                        <i class="fas fa-heading me-1"></i>Heading Font
+                    </p>
+                    <div class="font-grid" id="heading-font-grid">
+                        {% for font in all_fonts %}
+                        <button type="button"
+                                class="font-card {% if font.name == settings.heading_font %}font-card-active{% endif %}"
+                                data-font="{{ font.name }}"
+                                data-target="heading"
+                                style="font-family:'{{ font.name }}',sans-serif;"
+                                title="{{ font.category }}">
+                            <span class="font-card-preview">Aa</span>
+                            <span class="font-card-name">{{ font.name }}</span>
+                            <span class="font-card-cat">{{ font.category }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Body Font -->
+                <div class="col-12 col-md-6">
+                    <p class="text-white fw-semibold mb-2 small text-uppercase" style="letter-spacing:.05em;">
+                        <i class="fas fa-align-left me-1"></i>Body Font
+                    </p>
+                    <div class="font-grid" id="body-font-grid">
+                        {% for font in all_fonts %}
+                        <button type="button"
+                                class="font-card {% if font.name == settings.body_font %}font-card-active{% endif %}"
+                                data-font="{{ font.name }}"
+                                data-target="body"
+                                style="font-family:'{{ font.name }}',sans-serif;">
+                            <span class="font-card-preview">Aa</span>
+                            <span class="font-card-name">{{ font.name }}</span>
+                            <span class="font-card-cat">{{ font.category }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live font sample -->
+            <div class="mt-4 p-3" style="background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.08);">
+                <p class="text-white-50 small mb-2">Preview sample:</p>
+                <p id="fontSampleHeading" class="mb-1 fw-bold" style="font-size:1.3rem;color:#fff;transition:font-family .3s;">
+                    The quick brown fox jumps over the lazy dog
+                </p>
+                <p id="fontSampleBody" class="mb-0 small" style="color:rgba(255,255,255,.6);line-height:1.7;transition:font-family .3s;">
+                    Welcome to our learning platform. Explore tutorials, articles, and guides written to help you grow your skills at your own pace.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .font-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    .font-grid::-webkit-scrollbar { width: 4px; }
+    .font-grid::-webkit-scrollbar-track { background: transparent; }
+    .font-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 4px; }
+    .font-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 6px 8px;
+        border-radius: 10px;
+        border: 2px solid rgba(255,255,255,.1);
+        background: rgba(255,255,255,.04);
+        cursor: pointer;
+        transition: all .2s ease;
+        text-align: center;
+        color: #fff;
+    }
+    .font-card:hover {
+        background: rgba(255,255,255,.1);
+        border-color: rgba(255,255,255,.25);
+        transform: translateY(-2px);
+    }
+    .font-card-active {
+        background: rgba(var(--clr-primary-rgb,102,126,234),.25) !important;
+        border-color: var(--clr-primary,#667eea) !important;
+        box-shadow: 0 0 0 2px rgba(var(--clr-primary-rgb,102,126,234),.3);
+    }
+    .font-card-preview {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 5px;
+        display: block;
+    }
+    .font-card-name {
+        font-size: .65rem;
+        font-weight: 600;
+        line-height: 1.2;
+        display: block;
+        font-family: Inter, sans-serif;
+        color: rgba(255,255,255,.9);
+    }
+    .font-card-cat {
+        font-size: .58rem;
+        display: block;
+        font-family: Inter, sans-serif;
+        color: rgba(255,255,255,.4);
+        margin-top: 2px;
+    }
+    </style>
+
     <!-- Color Customization -->
     <div class="card blog-card mb-4">
         <div class="card-body p-4">
@@ -335,6 +479,17 @@ function updatePreview() {
 
     /* Active category pill */
     prevPill.style.background = `linear-gradient(135deg, ${p}, ${s})`;
+
+    /* Fonts */
+    const hFont = document.getElementById('heading_font').value || 'Inter';
+    const bFont = document.getElementById('body_font').value   || 'Inter';
+    const hStack = `'${hFont}', -apple-system, sans-serif`;
+    const bStack = `'${bFont}', -apple-system, sans-serif`;
+    prevTitle.style.fontFamily = hStack;
+    prevBtn.style.fontFamily   = bStack;
+    [prevTag1, prevTag2].forEach(t => t.style.fontFamily = bStack);
+    document.getElementById('fontSampleHeading').style.fontFamily = hStack;
+    document.getElementById('fontSampleBody').style.fontFamily    = bStack;
 }
 
 /* ---- Update hex labels AND preview on every change ---- */
@@ -511,7 +666,30 @@ PRESETS.forEach(preset => {
     presetRow.appendChild(btn);
 });
 
-/* ---- Default theme colors (mirror DEFAULT_SETTINGS in app.py) ---- */
+/* ================================================================
+   FONT CARD INTERACTION
+   ================================================================ */
+function applyFont(target, fontName) {
+    const hiddenInput = document.getElementById(target + '_font');
+    if (hiddenInput) hiddenInput.value = fontName;
+
+    /* Update active state on cards */
+    const gridId = target + '-font-grid';
+    document.querySelectorAll(`#${gridId} .font-card`).forEach(c => {
+        c.classList.toggle('font-card-active', c.dataset.font === fontName);
+    });
+
+    /* Refresh preview */
+    updatePreview();
+}
+
+document.querySelectorAll('.font-card').forEach(card => {
+    card.addEventListener('click', () => {
+        applyFont(card.dataset.target, card.dataset.font);
+    });
+});
+
+/* ---- Default theme colors + fonts (mirror DEFAULT_SETTINGS in app.py) ---- */
 const DEFAULTS = {
     primary_color:      '#667eea',
     secondary_color:    '#764ba2',
@@ -520,6 +698,8 @@ const DEFAULTS = {
     card_background:    '#ffffff',
     text_color:         '#333333',
     navbar_color:       '#000000',
+    heading_font:       'Inter',
+    body_font:          'Inter',
 };
 
 /* ---- Open confirmation modal ---- */
@@ -530,18 +710,21 @@ function confirmReset() {
 
 /* ---- Snap preview to defaults, then submit ---- */
 function doReset() {
-    /* Update every color input and its hex label to the default value */
     Object.entries(DEFAULTS).forEach(([key, val]) => {
-        const el = document.getElementById(key);
-        if (el) {
-            el.value = val;
-            const lbl = document.getElementById(key + '_label');
-            if (lbl) lbl.textContent = val;
+        if (key === 'heading_font' || key === 'body_font') {
+            const target = key === 'heading_font' ? 'heading' : 'body';
+            applyFont(target, val);
+        } else {
+            const el = document.getElementById(key);
+            if (el) {
+                el.value = val;
+                const lbl = document.getElementById(key + '_label');
+                if (lbl) lbl.textContent = val;
+            }
         }
     });
     updatePreview();
 
-    /* Hide modal then submit the hidden form */
     bootstrap.Modal.getInstance(document.getElementById('resetModal')).hide();
     setTimeout(() => document.getElementById('resetForm').submit(), 250);
 }
