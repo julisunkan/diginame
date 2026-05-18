@@ -568,6 +568,18 @@ def admin_settings():
     return render_template('admin_settings.html', settings=settings)
 
 
+@app.route('/admin/reset-settings', methods=['POST'])
+@login_required
+def reset_settings():
+    try:
+        fs_save_settings(DEFAULT_SETTINGS)
+        flash('Colors reset to default theme.', 'success')
+    except Exception as e:
+        logging.error(f"Error resetting settings: {e}")
+        flash(f'Error resetting settings: {e}', 'error')
+    return redirect(url_for('admin_settings'))
+
+
 # ---------------------------------------------------------------------------
 # Export / Import
 # ---------------------------------------------------------------------------

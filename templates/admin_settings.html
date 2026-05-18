@@ -201,15 +201,53 @@
     </div>
 
     <!-- Actions -->
-    <div class="d-flex gap-3">
+    <div class="d-flex flex-wrap gap-3 align-items-center">
         <button type="submit" class="btn btn-gradient px-4 py-2 fw-semibold">
             <i class="fas fa-save me-2"></i>Save Settings
         </button>
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light py-2">
             Cancel
         </a>
+        <button type="button" class="btn btn-outline-warning py-2 ms-auto fw-semibold"
+                onclick="confirmReset()">
+            <i class="fas fa-undo me-2"></i>Reset to Defaults
+        </button>
     </div>
 </form>
+
+<!-- Hidden reset form (submitted by JS after confirmation) -->
+<form id="resetForm" method="POST" action="{{ url_for('reset_settings') }}" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Reset confirmation modal -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content blog-card border-0" style="background:rgba(30,30,50,.97);">
+            <div class="modal-body text-center p-4">
+                <div style="width:56px;height:56px;border-radius:50%;background:rgba(234,179,8,.15);
+                            display:flex;align-items:center;justify-content:center;
+                            margin:0 auto 16px;font-size:1.4rem;color:#facc15;">
+                    <i class="fas fa-rotate-left"></i>
+                </div>
+                <h5 class="text-white fw-bold mb-2">Reset to Default Theme?</h5>
+                <p class="text-white-50 small mb-4">
+                    This will replace all your current color settings with the original defaults.<br>
+                    Your posts and other content won't be affected.
+                </p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                        Keep Current
+                    </button>
+                    <button type="button" class="btn btn-warning px-4 fw-semibold"
+                            onclick="doReset()">
+                        <i class="fas fa-undo me-2"></i>Yes, Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 /* ---- Utility: hex → "r, g, b" string ---- */
@@ -300,5 +338,40 @@ document.querySelectorAll('input[type="color"]').forEach(input => {
 
 /* Run once on page load so preview matches current saved values */
 updatePreview();
+
+/* ---- Default theme colors (mirror DEFAULT_SETTINGS in app.py) ---- */
+const DEFAULTS = {
+    primary_color:      '#667eea',
+    secondary_color:    '#764ba2',
+    background_color:   '#667eea',
+    overall_background: '#1a1a2e',
+    card_background:    '#ffffff',
+    text_color:         '#333333',
+    navbar_color:       '#000000',
+};
+
+/* ---- Open confirmation modal ---- */
+function confirmReset() {
+    const modal = new bootstrap.Modal(document.getElementById('resetModal'));
+    modal.show();
+}
+
+/* ---- Snap preview to defaults, then submit ---- */
+function doReset() {
+    /* Update every color input and its hex label to the default value */
+    Object.entries(DEFAULTS).forEach(([key, val]) => {
+        const el = document.getElementById(key);
+        if (el) {
+            el.value = val;
+            const lbl = document.getElementById(key + '_label');
+            if (lbl) lbl.textContent = val;
+        }
+    });
+    updatePreview();
+
+    /* Hide modal then submit the hidden form */
+    bootstrap.Modal.getInstance(document.getElementById('resetModal')).hide();
+    setTimeout(() => document.getElementById('resetForm').submit(), 250);
+}
 </script>
 {% endblock %}
