@@ -44,10 +44,20 @@
     <!-- Color Customization -->
     <div class="card blog-card mb-4">
         <div class="card-body p-4">
-            <h5 class="fw-bold mb-1" style="color:#a5b4fc;">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
                 <i class="fas fa-paint-brush me-2"></i>Color Scheme
             </h5>
-            <p class="text-white-50 small mb-4">These colors control the overall look of your site.</p>
+            <p class="text-white-50 small mb-3">These colors control the overall look of your site.</p>
+
+            <!-- Preset Themes -->
+            <div class="mb-4">
+                <p class="text-white-50 small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
+                    <i class="fas fa-swatchbook me-1"></i>Quick Presets
+                </p>
+                <div class="d-flex flex-wrap gap-2" id="presetRow">
+                    <!-- Presets rendered by JS below -->
+                </div>
+            </div>
 
             <div class="row g-3">
                 <div class="col-6 col-md-4">
@@ -338,6 +348,168 @@ document.querySelectorAll('input[type="color"]').forEach(input => {
 
 /* Run once on page load so preview matches current saved values */
 updatePreview();
+
+/* ================================================================
+   PRESET THEMES
+   ================================================================ */
+const PRESETS = [
+    {
+        name: 'Default',
+        icon: '🎨',
+        primary_color:      '#667eea',
+        secondary_color:    '#764ba2',
+        background_color:   '#667eea',
+        overall_background: '#1a1a2e',
+        card_background:    '#ffffff',
+        text_color:         '#333333',
+        navbar_color:       '#000000',
+    },
+    {
+        name: 'Ocean',
+        icon: '🌊',
+        primary_color:      '#06b6d4',
+        secondary_color:    '#0ea5e9',
+        background_color:   '#0891b2',
+        overall_background: '#0c1a2e',
+        card_background:    '#f0f9ff',
+        text_color:         '#0c4a6e',
+        navbar_color:       '#0c2340',
+    },
+    {
+        name: 'Sunset',
+        icon: '🌅',
+        primary_color:      '#f97316',
+        secondary_color:    '#dc2626',
+        background_color:   '#f97316',
+        overall_background: '#1c0a00',
+        card_background:    '#fff7ed',
+        text_color:         '#431407',
+        navbar_color:       '#1c0a00',
+    },
+    {
+        name: 'Forest',
+        icon: '🌿',
+        primary_color:      '#22c55e',
+        secondary_color:    '#16a34a',
+        background_color:   '#16a34a',
+        overall_background: '#052e16',
+        card_background:    '#f0fdf4',
+        text_color:         '#14532d',
+        navbar_color:       '#052e16',
+    },
+    {
+        name: 'Midnight',
+        icon: '🌙',
+        primary_color:      '#818cf8',
+        secondary_color:    '#a78bfa',
+        background_color:   '#4338ca',
+        overall_background: '#0f0a1e',
+        card_background:    '#1e1b4b',
+        text_color:         '#e0e7ff',
+        navbar_color:       '#0f0a1e',
+    },
+    {
+        name: 'Rose',
+        icon: '🌸',
+        primary_color:      '#ec4899',
+        secondary_color:    '#a855f7',
+        background_color:   '#db2777',
+        overall_background: '#1a0010',
+        card_background:    '#fdf2f8',
+        text_color:         '#500724',
+        navbar_color:       '#1a0010',
+    },
+    {
+        name: 'Gold',
+        icon: '✨',
+        primary_color:      '#f59e0b',
+        secondary_color:    '#ef4444',
+        background_color:   '#d97706',
+        overall_background: '#1c1000',
+        card_background:    '#fffbeb',
+        text_color:         '#451a03',
+        navbar_color:       '#1c0f00',
+    },
+    {
+        name: 'Slate',
+        icon: '🪨',
+        primary_color:      '#64748b',
+        secondary_color:    '#475569',
+        background_color:   '#475569',
+        overall_background: '#0f172a',
+        card_background:    '#f8fafc',
+        text_color:         '#1e293b',
+        navbar_color:       '#0f172a',
+    },
+];
+
+/* ---- Build preset swatch buttons ---- */
+const presetRow = document.getElementById('presetRow');
+PRESETS.forEach(preset => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = preset.name;
+    btn.style.cssText = `
+        display:flex; align-items:center; gap:8px;
+        padding:7px 13px; border-radius:50px; border:2px solid transparent;
+        background:rgba(255,255,255,.08); color:#fff;
+        font-size:.78rem; font-weight:600; cursor:pointer;
+        transition:all .2s ease; white-space:nowrap;
+    `;
+
+    /* gradient swatch circle */
+    const swatch = document.createElement('span');
+    swatch.style.cssText = `
+        display:inline-block; width:18px; height:18px; border-radius:50%;
+        background:linear-gradient(135deg,${preset.primary_color},${preset.secondary_color});
+        flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,.35);
+    `;
+
+    btn.appendChild(swatch);
+    btn.appendChild(document.createTextNode(preset.name));
+
+    btn.addEventListener('mouseenter', () => {
+        btn.style.background = `linear-gradient(135deg,${preset.primary_color},${preset.secondary_color})`;
+        btn.style.borderColor = 'transparent';
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = `0 6px 18px rgba(0,0,0,.3)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+        if (!btn.dataset.active) {
+            btn.style.background = 'rgba(255,255,255,.08)';
+            btn.style.borderColor = 'transparent';
+        }
+        btn.style.transform = '';
+        btn.style.boxShadow = '';
+    });
+
+    btn.addEventListener('click', () => {
+        /* Mark active */
+        presetRow.querySelectorAll('button').forEach(b => {
+            b.style.background = 'rgba(255,255,255,.08)';
+            b.style.borderColor = 'transparent';
+            delete b.dataset.active;
+        });
+        btn.style.background = `linear-gradient(135deg,${preset.primary_color},${preset.secondary_color})`;
+        btn.style.borderColor = 'rgba(255,255,255,.4)';
+        btn.dataset.active = '1';
+
+        /* Apply to all color inputs */
+        Object.keys(preset).forEach(key => {
+            if (key === 'name' || key === 'icon') return;
+            const el = document.getElementById(key);
+            if (el) {
+                el.value = preset[key];
+                const lbl = document.getElementById(key + '_label');
+                if (lbl) lbl.textContent = preset[key];
+            }
+        });
+
+        updatePreview();
+    });
+
+    presetRow.appendChild(btn);
+});
 
 /* ---- Default theme colors (mirror DEFAULT_SETTINGS in app.py) ---- */
 const DEFAULTS = {
