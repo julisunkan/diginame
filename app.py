@@ -1,6 +1,9 @@
 import os
 import re
+import io
 import json
+import math
+import hashlib
 import logging
 import functools
 from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory
@@ -1408,7 +1411,7 @@ def blog_dynamic_styles(blog_id):
 
 
 # ---------------------------------------------------------------------------
-# Static / PWA routes
+# Static / PWA routes (global)
 # ---------------------------------------------------------------------------
 
 @app.route('/offline')
@@ -1425,6 +1428,278 @@ def serve_manifest():
 def serve_sw():
     resp = send_from_directory('static', 'sw.js', mimetype='application/javascript')
     resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
+# ---------------------------------------------------------------------------
+# Per-blog PWA – icon generation helpers
+# ---------------------------------------------------------------------------
+
+_ICON_FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+_ICON_CACHE: dict = {}
+
+
+def _hex_to_rgb(hex_color: str) -> tuple:
+    h = hex_color.lstrip('#')
+    if len(h) == 3:
+        h = h[0] * 2 + h[1] * 2 + h[2] * 2
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _make_blog_icon_png(size: int, primary: str, secondary: str,
+                        initials: str, maskable: bool = False) -> bytes:
+    from PIL import Image, ImageDraw, ImageFont
+
+    pr = _hex_to_rgb(primary)
+    sr = _hex_to_rgb(secondary)
+
+    # ── Base diagonal gradient ──────────────────────────────────────────────
+    img = Image.new('RGB', (size, size))
+    for y in range(size):
+        t = y / max(size - 1, 1)
+        r = int(pr[0] + (sr[0] - pr[0]) * t)
+        g = int(pr[1] + (sr[1] - pr[1]) * t)
+        b = int(pr[2] + (sr[2] - pr[2]) * t)
+        ImageDraw.Draw(img).line([(0, y), (size - 1, y)], fill=(r, g, b))
+
+    img = img.convert('RGBA')
+
+    # ── Decorative accent circles ────────────────────────────────────────────
+    for cx_f, cy_f, r_f, alpha in [
+        (0.78, 0.22, 0.55, 55),
+        (0.10, 0.88, 0.30, 40),
+        (0.50, 0.50, 0.18, 25),
+    ]:
+        ov = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+        od = ImageDraw.Draw(ov)
+        cx, cy, cr = int(cx_f * size), int(cy_f * size), int(r_f * size)
+        od.ellipse(
+            [cx - cr, cy - cr, cx + cr, cy + cr],
+            fill=(sr[0], sr[1], sr[2], alpha),
+        )
+        img = Image.alpha_composite(img, ov)
+
+    draw = ImageDraw.Draw(img)
+
+    # ── Maskable safe-zone: text lives in central 80 % ───────────────────────
+    pad = int(size * 0.10) if maskable else 0
+    content = size - 2 * pad
+
+    # ── Initials text ────────────────────────────────────────────────────────
+    text = (initials[:2] if len(initials) >= 2 else initials[:1] or '?').upper()
+    font_sz = int(content * 0.46)
+    try:
+        font = ImageFont.truetype(_ICON_FONT, font_sz)
+    except OSError:
+        font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = pad + (content - tw) / 2 - bbox[0]
+    ty = pad + (content - th) / 2 - bbox[1]
+
+    # Drop shadow
+    draw.text((tx + max(2, size // 80), ty + max(2, size // 80)),
+              text, font=font, fill=(0, 0, 0, 90))
+    # White text
+    draw.text((tx, ty), text, font=font, fill=(255, 255, 255, 245))
+
+    buf = io.BytesIO()
+    img.convert('RGB').save(buf, format='PNG', optimize=True)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def _get_blog_icon(blog_id: str, size: int, maskable: bool = False) -> bytes:
+    s = get_blog_settings(blog_id)
+    cache_key = (blog_id, size, maskable,
+                 s.primary_color, s.secondary_color)
+    if cache_key not in _ICON_CACHE:
+        initials = ''.join(
+            w[0] for w in s.blog_title.split() if w
+        )[:2] or blog_id[:2].upper()
+        _ICON_CACHE[cache_key] = _make_blog_icon_png(
+            size, s.primary_color, s.secondary_color,
+            initials, maskable=maskable,
+        )
+    return _ICON_CACHE[cache_key]
+
+
+# ---------------------------------------------------------------------------
+# Per-blog PWA routes
+# ---------------------------------------------------------------------------
+
+_ICON_SIZES = [72, 96, 128, 144, 152, 192, 384, 512]
+_ICON_RE = re.compile(r'^(icon|maskable)-(\d+)\.png$')
+
+
+@app.route('/<blog_id>/icons/<path:filename>')
+def blog_pwa_icon(blog_id, filename):
+    if is_reserved(blog_id):
+        from flask import abort; abort(404)
+    m = _ICON_RE.match(filename)
+    if not m:
+        from flask import abort; abort(404)
+    kind, size_str = m.group(1), m.group(2)
+    size = int(size_str)
+    if size not in _ICON_SIZES:
+        from flask import abort; abort(404)
+    maskable = (kind == 'maskable')
+    try:
+        png_bytes = _get_blog_icon(blog_id, size, maskable=maskable)
+    except Exception as e:
+        logging.error(f'Icon generation error for {blog_id}/{filename}: {e}')
+        from flask import abort; abort(500)
+    resp = Response(png_bytes, mimetype='image/png')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+@app.route('/<blog_id>/manifest.json')
+def blog_pwa_manifest(blog_id):
+    if is_reserved(blog_id):
+        from flask import abort; abort(404)
+    try:
+        if not fs_get_blog(blog_id):
+            from flask import abort; abort(404)
+    except Exception:
+        pass
+    s = get_blog_settings(blog_id)
+    short_name = s.blog_title[:12] if len(s.blog_title) > 12 else s.blog_title
+
+    icons = []
+    for sz in _ICON_SIZES:
+        icons.append({
+            'src': f'/{blog_id}/icons/icon-{sz}.png',
+            'sizes': f'{sz}x{sz}',
+            'type': 'image/png',
+            'purpose': 'any',
+        })
+    for sz in [192, 512]:
+        icons.append({
+            'src': f'/{blog_id}/icons/maskable-{sz}.png',
+            'sizes': f'{sz}x{sz}',
+            'type': 'image/png',
+            'purpose': 'maskable',
+        })
+
+    manifest = {
+        'name': s.blog_title,
+        'short_name': short_name,
+        'description': s.blog_description or s.blog_title,
+        'start_url': f'/{blog_id}/',
+        'scope': f'/{blog_id}/',
+        'display': 'standalone',
+        'orientation': 'any',
+        'theme_color': s.primary_color,
+        'background_color': s.background_color,
+        'lang': 'en',
+        'categories': ['education', 'productivity'],
+        'icons': icons,
+        'shortcuts': [
+            {
+                'name': 'Latest Posts',
+                'url': f'/{blog_id}/',
+                'icons': [{'src': f'/{blog_id}/icons/icon-96.png', 'sizes': '96x96'}],
+            }
+        ],
+    }
+    resp = Response(
+        json.dumps(manifest, indent=2, ensure_ascii=False),
+        mimetype='application/manifest+json',
+    )
+    resp.headers['Cache-Control'] = 'public, max-age=300'
+    return resp
+
+
+@app.route('/<blog_id>/sw.js')
+def blog_pwa_sw(blog_id):
+    if is_reserved(blog_id):
+        from flask import abort; abort(404)
+    try:
+        if not fs_get_blog(blog_id):
+            from flask import abort; abort(404)
+    except Exception:
+        pass
+    s = get_blog_settings(blog_id)
+    version = hashlib.md5(
+        f'{s.primary_color}{s.secondary_color}{s.blog_title}'.encode()
+    ).hexdigest()[:8]
+
+    sw_js = f"""/* Auto-generated service worker for /{blog_id}/ */
+const BLOG_ID = '{blog_id}';
+const CACHE_VER = '{version}';
+const CACHE_NAME = 'blog-' + BLOG_ID + '-v' + CACHE_VER;
+const OFFLINE_URL = '/offline';
+
+const PRECACHE = [
+  '/{blog_id}/',
+  '/offline',
+  '/{blog_id}/icons/icon-192.png',
+  '/{blog_id}/icons/icon-512.png',
+  '/{blog_id}/manifest.json',
+];
+
+self.addEventListener('install', e => {{
+  e.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(c => c.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
+  );
+}});
+
+self.addEventListener('activate', e => {{
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k.startsWith('blog-' + BLOG_ID + '-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
+}});
+
+self.addEventListener('fetch', e => {{
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.includes('/admin/')) return;
+  if (url.pathname.includes('/dynamic-styles.css')) return;
+
+  if (req.mode === 'navigate') {{
+    e.respondWith(
+      fetch(req)
+        .then(res => {{
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+          return res;
+        }})
+        .catch(() =>
+          caches.match(req).then(r => r || caches.match(OFFLINE_URL))
+        )
+    );
+    return;
+  }}
+
+  e.respondWith(
+    caches.match(req).then(cached => {{
+      if (cached) return cached;
+      return fetch(req).then(res => {{
+        if (res && res.ok) {{
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }}
+        return res;
+      }});
+    }})
+  );
+}});
+"""
+    resp = Response(sw_js, mimetype='application/javascript')
+    resp.headers['Service-Worker-Allowed'] = f'/{blog_id}/'
     resp.headers['Cache-Control'] = 'no-cache'
     return resp
 
