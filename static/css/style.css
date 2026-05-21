@@ -199,7 +199,7 @@
 
 /* Desktop Navigation */
 .navbar-dark .nav-link {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: var(--clr-nav-text, rgba(255, 255, 255, 0.8)) !important;
     transition: all 0.3s ease;
     border-radius: 8px;
     margin: 0 5px;
@@ -208,9 +208,13 @@
 
 .navbar-dark .nav-link:hover,
 .navbar-dark .nav-link.active {
-    color: white !important;
+    color: var(--clr-nav-text, white) !important;
     background: rgba(var(--clr-primary-rgb, 102, 126, 234), 0.2);
     transform: translateY(-1px);
+}
+
+.navbar-dark .navbar-brand {
+    color: var(--clr-nav-text, white) !important;
 }
 
 /* Responsive adjustments for larger screens */

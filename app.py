@@ -105,6 +105,7 @@ DEFAULT_SETTINGS = {
     'card_background': '#ffffff',
     'text_color': '#333333',
     'navbar_color': '#000000',
+    'navbar_text_color': '#ffffff',
     'heading_font': 'Inter',
     'body_font': 'Inter',
 }
@@ -121,6 +122,7 @@ PRESET_THEMES = [
         'card_background':    '#e0f7fa',
         'text_color':         '#0c1a2e',
         'navbar_color':       '#0a1628',
+        'navbar_text_color':  '#e0f7fa',
         'heading_font':       'Space Grotesk',
         'body_font':          'DM Sans',
     },
@@ -135,6 +137,7 @@ PRESET_THEMES = [
         'card_background':    '#fff7ed',
         'text_color':         '#1c1917',
         'navbar_color':       '#2d1206',
+        'navbar_text_color':  '#fed7aa',
         'heading_font':       'Playfair Display',
         'body_font':          'Lora',
     },
@@ -149,6 +152,7 @@ PRESET_THEMES = [
         'card_background':    '#f0fdf4',
         'text_color':         '#14532d',
         'navbar_color':       '#052e16',
+        'navbar_text_color':  '#bbf7d0',
         'heading_font':       'Merriweather',
         'body_font':          'Inter',
     },
@@ -163,6 +167,7 @@ PRESET_THEMES = [
         'card_background':    '#faf5ff',
         'text_color':         '#1a0a2e',
         'navbar_color':       '#0a0614',
+        'navbar_text_color':  '#e9d5ff',
         'heading_font':       'Poppins',
         'body_font':          'Nunito',
     },
@@ -177,6 +182,7 @@ PRESET_THEMES = [
         'card_background':    '#fffbeb',
         'text_color':         '#1c1917',
         'navbar_color':       '#2d0a0a',
+        'navbar_text_color':  '#fde68a',
         'heading_font':       'Raleway',
         'body_font':          'Montserrat',
     },
@@ -210,6 +216,7 @@ class SiteSettings:
         self.card_background   = d['card_background']
         self.text_color        = d['text_color']
         self.navbar_color      = d['navbar_color']
+        self.navbar_text_color = d.get('navbar_text_color', '#ffffff')
         self.heading_font      = d.get('heading_font', 'Inter')
         self.body_font         = d.get('body_font', 'Inter')
 
@@ -224,6 +231,7 @@ class SiteSettings:
             'card_background':   self.card_background,
             'text_color':        self.text_color,
             'navbar_color':      self.navbar_color,
+            'navbar_text_color': self.navbar_text_color,
             'heading_font':      self.heading_font,
             'body_font':         self.body_font,
         }
@@ -1025,6 +1033,7 @@ def blog_admin_settings(blog_id):
             'card_background':   request.form.get('card_background', settings.card_background),
             'text_color':        request.form.get('text_color', settings.text_color),
             'navbar_color':      request.form.get('navbar_color', settings.navbar_color),
+            'navbar_text_color': request.form.get('navbar_text_color', settings.navbar_text_color),
             'heading_font':      request.form.get('heading_font', settings.heading_font),
             'body_font':         request.form.get('body_font', settings.body_font),
         })
@@ -1325,6 +1334,7 @@ def _build_dynamic_css(s: SiteSettings) -> str:
     --clr-card:          {s.card_background};
     --clr-text:          {s.text_color};
     --clr-navbar:        {s.navbar_color};
+    --clr-nav-text:      {s.navbar_text_color};
     --clr-primary-rgb:   {hex_to_rgb(s.primary_color)};
     --clr-secondary-rgb: {hex_to_rgb(s.secondary_color)};
     --clr-card-rgb:      {hex_to_rgb(s.card_background)};

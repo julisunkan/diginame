@@ -64,6 +64,7 @@
     --pv-card:       {{ settings.card_background }};
     --pv-text:       {{ settings.text_color }};
     --pv-navbar:     {{ settings.navbar_color }};
+    --pv-nav-text:   {{ settings.navbar_text_color }};
     --pv-head-font:  '{{ settings.heading_font }}', sans-serif;
     --pv-body-font:  '{{ settings.body_font }}', sans-serif;
 }
@@ -118,7 +119,7 @@
     font-family: var(--pv-head-font);
     font-size: .75rem;
     font-weight: 800;
-    color: #fff;
+    color: var(--pv-nav-text, #fff);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -131,7 +132,8 @@
 .pv-nav-link {
     font-family: var(--pv-body-font);
     font-size: .6rem;
-    color: rgba(255,255,255,.7);
+    color: var(--pv-nav-text, rgba(255,255,255,.7));
+    opacity: 0.8;
 }
 .pv-hero {
     background: linear-gradient(135deg, var(--pv-bg-start) 0%, var(--pv-secondary) 100%);
@@ -408,13 +410,22 @@
                             <small class="text-white-50">Gradient end, highlights</small>
                         </div>
                         <div class="col-6 col-md-4">
-                            <label for="navbar_color" class="form-label fw-semibold">Navbar Color</label>
+                            <label for="navbar_color" class="form-label fw-semibold">Navbar Background</label>
                             <div class="color-picker-wrap">
                                 <input type="color" class="form-control form-control-color" id="navbar_color"
                                        name="navbar_color" value="{{ settings.navbar_color }}">
                                 <span class="color-hex-label" id="navbar_color_label">{{ settings.navbar_color }}</span>
                             </div>
-                            <small class="text-white-50">Top navigation bar</small>
+                            <small class="text-white-50">Top navigation bar background</small>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label for="navbar_text_color" class="form-label fw-semibold">Navbar Text</label>
+                            <div class="color-picker-wrap">
+                                <input type="color" class="form-control form-control-color" id="navbar_text_color"
+                                       name="navbar_text_color" value="{{ settings.navbar_text_color }}">
+                                <span class="color-hex-label" id="navbar_text_color_label">{{ settings.navbar_text_color }}</span>
+                            </div>
+                            <small class="text-white-50">Navigation links &amp; brand text</small>
                         </div>
                         <div class="col-6 col-md-4">
                             <label for="overall_background" class="form-label fw-semibold">Page Background</label>
@@ -642,6 +653,7 @@ function syncPreview() {
     pvSetVar('--pv-card',       document.getElementById('card_background')?.value  || '');
     pvSetVar('--pv-text',       document.getElementById('text_color')?.value       || '');
     pvSetVar('--pv-navbar',     document.getElementById('navbar_color')?.value     || '');
+    pvSetVar('--pv-nav-text',   document.getElementById('navbar_text_color')?.value || '');
 }
 
 function syncPreviewText() {
@@ -663,7 +675,7 @@ function syncPreviewText() {
 }
 
 /* ── Color label sync + preview ──────────────────────── */
-['primary_color','secondary_color','navbar_color','overall_background',
+['primary_color','secondary_color','navbar_color','navbar_text_color','overall_background',
  'background_color','card_background','text_color'].forEach(id => {
     const el  = document.getElementById(id);
     const lbl = document.getElementById(id + '_label');
@@ -718,6 +730,7 @@ document.querySelectorAll('.theme-card').forEach(card => {
         setColorField('card_background',    theme.card_background);
         setColorField('text_color',         theme.text_color);
         setColorField('navbar_color',       theme.navbar_color);
+        setColorField('navbar_text_color',  theme.navbar_text_color || '#ffffff');
         activateFontCard('heading', theme.heading_font);
         activateFontCard('body',    theme.body_font);
         syncPreview();
