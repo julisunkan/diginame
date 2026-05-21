@@ -333,6 +333,69 @@ def fs_blog_get_admin(blog_id):
 
 
 # ---------------------------------------------------------------------------
+# Blog-scoped activity log helpers
+# ---------------------------------------------------------------------------
+
+# Action constants
+ACT_CREATED  = 'created'
+ACT_EDITED   = 'edited'
+ACT_DELETED  = 'deleted'
+ACT_IMPORTED = 'imported'
+ACT_SETTINGS = 'settings'
+ACT_EXPORTED = 'exported'
+
+ACTION_META = {
+    ACT_CREATED:  {'icon': 'fa-plus-circle',    'color': '#34d399', 'label': 'Created'},
+    ACT_EDITED:   {'icon': 'fa-pen',            'color': '#60a5fa', 'label': 'Edited'},
+    ACT_DELETED:  {'icon': 'fa-trash-alt',      'color': '#f87171', 'label': 'Deleted'},
+    ACT_IMPORTED: {'icon': 'fa-file-import',    'color': '#a78bfa', 'label': 'Imported'},
+    ACT_SETTINGS: {'icon': 'fa-sliders-h',      'color': '#fbbf24', 'label': 'Settings'},
+    ACT_EXPORTED: {'icon': 'fa-file-export',    'color': '#818cf8', 'label': 'Exported'},
+}
+
+
+def fs_blog_log_activity(blog_id, action, post_title='', post_id='', details=''):
+    """Write one activity-log entry. Non-fatal — errors are swallowed."""
+    try:
+        _blog_col(blog_id, 'activity_log').add({
+            'action':      action,
+            'post_title':  post_title,
+            'post_id':     post_id,
+            'details':     details,
+            'timestamp':   datetime.utcnow(),
+        })
+    except Exception as exc:
+        logging.warning(f"Could not write activity log for {blog_id}: {exc}")
+
+
+def fs_blog_get_activity_log(blog_id, limit=100):
+    """Return activity entries sorted newest-first."""
+    try:
+        docs = (
+            _blog_col(blog_id, 'activity_log')
+            .order_by('timestamp', direction='DESCENDING')
+            .limit(limit)
+            .stream()
+        )
+        entries = []
+        for doc in docs:
+            d = doc.to_dict()
+            entries.append({
+                'id':         doc.id,
+                'action':     d.get('action', ''),
+                'post_title': d.get('post_title', ''),
+                'post_id':    d.get('post_id', ''),
+                'details':    d.get('details', ''),
+                'timestamp':  d.get('timestamp'),
+                'meta':       ACTION_META.get(d.get('action', ''), ACTION_META[ACT_EDITED]),
+            })
+        return entries
+    except Exception as exc:
+        logging.warning(f"Could not read activity log for {blog_id}: {exc}")
+        return []
+
+
+# ---------------------------------------------------------------------------
 # Super-admin Firestore helpers
 # ---------------------------------------------------------------------------
 
@@ -755,9 +818,22 @@ def blog_admin_dashboard(blog_id):
     except Exception as e:
         logging.error(f"Error loading posts: {e}")
         posts = []
+    recent_activity = fs_blog_get_activity_log(blog_id, limit=8)
     ctx = blog_ctx(blog_id)
-    ctx.update({'blog': blog, 'posts': posts})
+    ctx.update({'blog': blog, 'posts': posts, 'recent_activity': recent_activity})
     return render_template('blog/dashboard.html', **ctx)
+
+
+@app.route('/<blog_id>/admin/activity-log')
+@blog_admin_required
+def blog_activity_log(blog_id):
+    blog = fs_get_blog(blog_id)
+    if not blog:
+        from flask import abort; abort(404)
+    activity = fs_blog_get_activity_log(blog_id, limit=100)
+    ctx = blog_ctx(blog_id)
+    ctx.update({'blog': blog, 'activity': activity})
+    return render_template('blog/activity_log.html', **ctx)
 
 
 @app.route('/<blog_id>/admin/new', methods=['GET', 'POST'])
@@ -773,7 +849,9 @@ def blog_new_post(blog_id):
         featured_image = request.form.get('featured_image', '').strip() or None
         tags           = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
         try:
-            fs_blog_create_post(blog_id, title, content, featured_image, tags)
+            new_id = fs_blog_create_post(blog_id, title, content, featured_image, tags)
+            fs_blog_log_activity(blog_id, ACT_CREATED, post_title=title, post_id=new_id,
+                                 details=f'{len(tags)} tag(s)' if tags else '')
             flash('Post created successfully!', 'success')
         except Exception as e:
             logging.error(f"Error creating post: {e}")
@@ -800,15 +878,18 @@ def blog_edit_post(blog_id, post_id):
         from flask import abort; abort(404)
 
     if request.method == 'POST':
-        tags = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
+        tags      = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
+        new_title = request.form['title']
         try:
             fs_blog_update_post(
                 blog_id, post_id,
-                request.form['title'],
+                new_title,
                 request.form['content'],
                 request.form.get('featured_image', '').strip() or None,
                 tags,
             )
+            fs_blog_log_activity(blog_id, ACT_EDITED, post_title=new_title, post_id=post_id,
+                                 details=f'Previously: "{post.title}"' if post.title != new_title else '')
             flash('Post updated successfully!', 'success')
         except Exception as e:
             logging.error(f"Error updating post: {e}")
@@ -827,8 +908,11 @@ def blog_edit_post(blog_id, post_id):
 @app.route('/<blog_id>/admin/delete/<string:post_id>', methods=['POST'])
 @blog_admin_required
 def blog_delete_post(blog_id, post_id):
+    post = fs_blog_get_post(blog_id, post_id)
+    saved_title = post.title if post else post_id
     try:
         fs_blog_delete_post(blog_id, post_id)
+        fs_blog_log_activity(blog_id, ACT_DELETED, post_title=saved_title, post_id=post_id)
         flash('Post deleted successfully!', 'success')
     except Exception as e:
         logging.error(f"Error deleting post: {e}")
@@ -864,6 +948,8 @@ def blog_admin_settings(blog_id):
         })
         try:
             fs_blog_save_settings(blog_id, new_settings.to_dict())
+            fs_blog_log_activity(blog_id, ACT_SETTINGS,
+                                 details=f'Title: {new_settings.blog_title}')
             flash('Settings updated successfully!', 'success')
         except Exception as e:
             logging.error(f"Error saving settings: {e}")
@@ -880,6 +966,7 @@ def blog_admin_settings(blog_id):
 def blog_reset_settings(blog_id):
     try:
         fs_blog_save_settings(blog_id, DEFAULT_SETTINGS)
+        fs_blog_log_activity(blog_id, ACT_SETTINGS, details='Reset to default theme')
         flash('Colors reset to default theme.', 'success')
     except Exception as e:
         logging.error(f"Error resetting settings: {e}")
@@ -980,6 +1067,8 @@ def blog_export(blog_id):
             for p in posts
         ],
     }
+    fs_blog_log_activity(blog_id, ACT_EXPORTED,
+                         details=f'{len(posts)} post(s) exported')
     return Response(
         json.dumps(data, indent=2, ensure_ascii=False),
         mimetype='application/json',
@@ -1040,6 +1129,8 @@ def blog_import(blog_id):
                 existing_titles.add(post_data['title'])
                 imported_count += 1
             if imported_count > 0:
+                fs_blog_log_activity(blog_id, ACT_IMPORTED,
+                                     details=f'{imported_count} post(s) imported, {skipped_count} skipped')
                 flash(f'Successfully imported {imported_count} posts! Skipped {skipped_count} duplicates.', 'success')
             else:
                 flash(f'No new posts imported. Skipped {skipped_count} duplicates or invalid entries.', 'info')
