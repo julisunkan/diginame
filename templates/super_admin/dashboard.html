@@ -168,7 +168,7 @@
                     <i class="fas fa-copy"></i> Clone
                 </a>
                 <form method="POST" action="{{ url_for('super_admin_delete_blog', blog_id=blog.id) }}"
-                      onsubmit="return confirm('Delete blog \'{{ blog.name | replace(\"'\", \"\\'\") }}\'? This permanently removes ALL posts, settings, and admin credentials. This cannot be undone.')">
+                      onsubmit="return confirm('Delete blog \"{{ blog.name }}\"? This permanently removes ALL posts, settings, and admin credentials. This cannot be undone.')">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn-danger-soft" title="Delete Blog">
                         <i class="fas fa-trash-alt"></i> Delete
