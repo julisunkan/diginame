@@ -356,7 +356,7 @@
 
                     <div class="theme-grid">
                         {% for theme in preset_themes %}
-                        <button type="button" class="theme-card" data-theme="{{ theme | tojson | e }}"
+                        <button type="button" class="theme-card" data-theme='{{ theme | tojson }}'
                                 title="Apply {{ theme.name }}">
                             <div class="theme-preview">
                                 <div class="theme-preview-bg" style="background:linear-gradient(135deg,{{ theme.primary_color }},{{ theme.secondary_color }});"></div>
