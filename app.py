@@ -66,7 +66,8 @@ def hex_to_rgb(hex_color):
         hex_color = ''.join(c * 2 for c in hex_color)
     try:
         return ', '.join(str(int(hex_color[i:i + 2], 16)) for i in (0, 2, 4))
-    except Exception:
+    except Exception as e:
+        logging.warning(f"hex_to_rgb: invalid hex '{hex_color}': {e}")
         return '102, 126, 234'
 
 
@@ -696,7 +697,8 @@ def super_admin_change_credentials():
     try:
         admin = fs_get_super_admin()
         current_username = admin.get('username', 'superadmin') if admin else 'superadmin'
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not load super-admin credentials for display: {e}")
         current_username = 'superadmin'
 
     return render_template('super_admin/change_credentials.html',
@@ -708,7 +710,8 @@ def super_admin_change_credentials():
 def super_admin_create_blog():
     try:
         blogs = fs_list_blogs()
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not list blogs for create-blog page: {e}")
         blogs = []
 
     if request.method == 'POST':
@@ -946,7 +949,8 @@ def blog_new_post(blog_id):
 
     try:
         all_tags = fs_blog_get_all_tags(blog_id)
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not load tags for new_post ({blog_id}): {e}")
         all_tags = []
     ctx = blog_ctx(blog_id)
     ctx.update({'blog': blog, 'all_tags': all_tags})
@@ -988,7 +992,8 @@ def blog_edit_post(blog_id, post_id):
 
     try:
         all_tags = fs_blog_get_all_tags(blog_id)
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not load tags for edit_post ({blog_id}/{post_id}): {e}")
         all_tags = []
     ctx = blog_ctx(blog_id)
     ctx.update({'blog': blog, 'post': post, 'all_tags': all_tags})
@@ -1121,7 +1126,8 @@ def blog_change_credentials(blog_id):
     try:
         admin = fs_blog_get_admin(blog_id)
         current_username = admin.get('username', 'admin') if admin else 'admin'
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not load blog admin credentials for display ({blog_id}): {e}")
         current_username = 'admin'
 
     ctx = blog_ctx(blog_id)
