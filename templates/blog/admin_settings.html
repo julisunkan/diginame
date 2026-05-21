@@ -1,0 +1,261 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Site Settings — {{ site_settings.blog_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
+    <div>
+        <h1 class="text-white mb-1" style="font-size:1.8rem;font-weight:800;">
+            <i class="fas fa-palette me-2"></i>Site Settings
+        </h1>
+        <p class="text-white-50 mb-0 small">Customize the appearance of <strong>{{ site_settings.blog_title }}</strong></p>
+    </div>
+    <a href="{{ url_for('blog_admin_dashboard', blog_id=blog_id) }}" class="btn btn-outline-light btn-sm">
+        <i class="fas fa-arrow-left me-2"></i>Dashboard
+    </a>
+</div>
+
+<form method="POST" class="animate__animated animate__fadeIn">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Site Info -->
+    <div class="card blog-card mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-4" style="color:#a5b4fc;">
+                <i class="fas fa-info-circle me-2"></i>Site Information
+            </h5>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="blog_title" class="form-label fw-semibold">Blog Title</label>
+                    <input type="text" class="form-control" id="blog_title" name="blog_title"
+                           value="{{ settings.blog_title }}" required placeholder="My Awesome Blog">
+                </div>
+                <div class="col-12">
+                    <label for="blog_description" class="form-label fw-semibold">Blog Description</label>
+                    <textarea class="form-control" id="blog_description" name="blog_description"
+                              rows="2" required placeholder="A short description of your blog">{{ settings.blog_description }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Typography -->
+    <div class="card blog-card mb-4 animate__animated animate__fadeIn">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
+                <i class="fas fa-font me-2"></i>Typography
+            </h5>
+            <p class="text-white-50 small mb-4">Choose fonts for headings and body text.</p>
+
+            {% set all_fonts = [
+                {'name':'Inter','category':'Sans-serif'},
+                {'name':'Poppins','category':'Sans-serif'},
+                {'name':'Montserrat','category':'Sans-serif'},
+                {'name':'Raleway','category':'Sans-serif'},
+                {'name':'Space Grotesk','category':'Sans-serif'},
+                {'name':'DM Sans','category':'Sans-serif'},
+                {'name':'Nunito','category':'Sans-serif'},
+                {'name':'Playfair Display','category':'Serif'},
+                {'name':'Merriweather','category':'Serif'},
+                {'name':'Lora','category':'Serif'},
+                {'name':'Source Serif 4','category':'Serif'},
+                {'name':'Roboto Mono','category':'Monospace'}
+            ] %}
+
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;600;700&family=Lora:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap">
+
+            <input type="hidden" name="heading_font" id="heading_font" value="{{ settings.heading_font }}">
+            <input type="hidden" name="body_font"    id="body_font"    value="{{ settings.body_font }}">
+
+            <div class="row g-4">
+                <div class="col-12 col-md-6">
+                    <p class="text-white fw-semibold mb-2 small text-uppercase" style="letter-spacing:.05em;">
+                        <i class="fas fa-heading me-1"></i>Heading Font
+                    </p>
+                    <div class="font-grid" id="heading-font-grid">
+                        {% for font in all_fonts %}
+                        <button type="button"
+                                class="font-card {% if font.name == settings.heading_font %}font-card-active{% endif %}"
+                                data-font="{{ font.name }}" data-target="heading"
+                                style="font-family:'{{ font.name }}',sans-serif;" title="{{ font.category }}">
+                            <span class="font-card-preview">Aa</span>
+                            <span class="font-card-name">{{ font.name }}</span>
+                            <span class="font-card-cat">{{ font.category }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <p class="text-white fw-semibold mb-2 small text-uppercase" style="letter-spacing:.05em;">
+                        <i class="fas fa-align-left me-1"></i>Body Font
+                    </p>
+                    <div class="font-grid" id="body-font-grid">
+                        {% for font in all_fonts %}
+                        <button type="button"
+                                class="font-card {% if font.name == settings.body_font %}font-card-active{% endif %}"
+                                data-font="{{ font.name }}" data-target="body"
+                                style="font-family:'{{ font.name }}',sans-serif;">
+                            <span class="font-card-preview">Aa</span>
+                            <span class="font-card-name">{{ font.name }}</span>
+                            <span class="font-card-cat">{{ font.category }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .font-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; max-height:300px; overflow-y:auto; padding-right:4px; }
+    .font-card { display:flex; flex-direction:column; align-items:center; padding:10px 6px 8px; border-radius:10px; border:2px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); cursor:pointer; transition:all .2s; text-align:center; color:#fff; }
+    .font-card:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.25); transform:translateY(-2px); }
+    .font-card-active { background:rgba(var(--clr-primary-rgb,102,126,234),.25) !important; border-color:var(--clr-primary,#667eea) !important; box-shadow:0 0 0 2px rgba(var(--clr-primary-rgb,102,126,234),.3); }
+    .font-card-preview { font-size:1.5rem; font-weight:700; line-height:1; margin-bottom:5px; display:block; }
+    .font-card-name { font-size:.65rem; font-weight:600; line-height:1.2; display:block; font-family:Inter,sans-serif; color:rgba(255,255,255,.9); }
+    .font-card-cat { font-size:.58rem; display:block; font-family:Inter,sans-serif; color:rgba(255,255,255,.4); margin-top:2px; }
+    </style>
+
+    <!-- Color Customization -->
+    <div class="card blog-card mb-4">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
+                <i class="fas fa-paint-brush me-2"></i>Color Scheme
+            </h5>
+            <p class="text-white-50 small mb-3">These colors control the overall look of your blog.</p>
+
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <label for="primary_color" class="form-label fw-semibold">Primary Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="primary_color"
+                               name="primary_color" value="{{ settings.primary_color }}">
+                        <span class="color-hex-label" id="primary_color_label">{{ settings.primary_color }}</span>
+                    </div>
+                    <small class="text-white-50">Buttons, links, accents</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="secondary_color" class="form-label fw-semibold">Secondary Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="secondary_color"
+                               name="secondary_color" value="{{ settings.secondary_color }}">
+                        <span class="color-hex-label" id="secondary_color_label">{{ settings.secondary_color }}</span>
+                    </div>
+                    <small class="text-white-50">Gradient end, highlights</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="navbar_color" class="form-label fw-semibold">Navbar Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="navbar_color"
+                               name="navbar_color" value="{{ settings.navbar_color }}">
+                        <span class="color-hex-label" id="navbar_color_label">{{ settings.navbar_color }}</span>
+                    </div>
+                    <small class="text-white-50">Top navigation bar</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="overall_background" class="form-label fw-semibold">Page Background</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="overall_background"
+                               name="overall_background" value="{{ settings.overall_background }}">
+                        <span class="color-hex-label" id="overall_background_label">{{ settings.overall_background }}</span>
+                    </div>
+                    <small class="text-white-50">Main page background</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="background_color" class="form-label fw-semibold">Gradient Start</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="background_color"
+                               name="background_color" value="{{ settings.background_color }}">
+                        <span class="color-hex-label" id="background_color_label">{{ settings.background_color }}</span>
+                    </div>
+                    <small class="text-white-50">Hero gradient start</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="card_background" class="form-label fw-semibold">Card Background</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="card_background"
+                               name="card_background" value="{{ settings.card_background }}">
+                        <span class="color-hex-label" id="card_background_label">{{ settings.card_background }}</span>
+                    </div>
+                    <small class="text-white-50">Post cards & panels</small>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label for="text_color" class="form-label fw-semibold">Text Color</label>
+                    <div class="color-picker-wrap">
+                        <input type="color" class="form-control form-control-color" id="text_color"
+                               name="text_color" value="{{ settings.text_color }}">
+                        <span class="color-hex-label" id="text_color_label">{{ settings.text_color }}</span>
+                    </div>
+                    <small class="text-white-50">Body text color</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        <button type="submit" class="btn btn-gradient px-4 py-2 fw-semibold">
+            <i class="fas fa-save me-2"></i>Save Settings
+        </button>
+        <a href="{{ url_for('blog_admin_dashboard', blog_id=blog_id) }}" class="btn btn-outline-light py-2">
+            Cancel
+        </a>
+        <button type="button" class="btn btn-outline-warning py-2 ms-auto fw-semibold"
+                onclick="confirmReset()">
+            <i class="fas fa-undo me-2"></i>Reset to Defaults
+        </button>
+    </div>
+</form>
+
+<form id="resetForm" method="POST" action="{{ url_for('blog_reset_settings', blog_id=blog_id) }}" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content blog-card border-0" style="background:rgba(30,30,50,.97);">
+            <div class="modal-body text-center p-4">
+                <div style="width:56px;height:56px;border-radius:50%;background:rgba(234,179,8,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem;color:#facc15;">
+                    <i class="fas fa-rotate-left"></i>
+                </div>
+                <h5 class="text-white fw-bold mb-2">Reset to Default Theme?</h5>
+                <p class="text-white-50 small mb-4">
+                    This will replace all your current color settings with the original defaults.<br>
+                    Your posts and other content won't be affected.
+                </p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Keep Current</button>
+                    <button type="button" class="btn btn-warning px-4 fw-semibold" onclick="doReset()">
+                        <i class="fas fa-undo me-2"></i>Yes, Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmReset() { new bootstrap.Modal(document.getElementById('resetModal')).show(); }
+function doReset() { document.getElementById('resetForm').submit(); }
+
+// Color label sync
+['primary_color','secondary_color','navbar_color','overall_background','background_color','card_background','text_color'].forEach(id => {
+    const el = document.getElementById(id);
+    const lbl = document.getElementById(id + '_label');
+    if (el && lbl) {
+        el.addEventListener('input', () => { lbl.textContent = el.value; });
+    }
+});
+
+// Font card selection
+document.querySelectorAll('.font-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        const fontName = btn.dataset.font;
+        document.querySelectorAll(`[data-target="${target}"]`).forEach(b => b.classList.remove('font-card-active'));
+        btn.classList.add('font-card-active');
+        document.getElementById(target + '_font').value = fontName;
+    });
+});
+</script>
+{% endblock %}

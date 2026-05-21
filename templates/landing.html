@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Platform — All Blogs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .top-bar {
+            background: rgba(255,255,255,.05);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-bar-brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+        .btn-super {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: .85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-super:hover {
+            background: linear-gradient(135deg, #6d28d9, #9333ea);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(124,58,237,.4);
+        }
+        .hero {
+            text-align: center;
+            padding: 80px 20px 60px;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(167,139,250,.15);
+            border: 1px solid rgba(167,139,250,.3);
+            color: #a78bfa;
+            border-radius: 50px;
+            padding: 6px 16px;
+            font-size: .8rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 60%, #f472b6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            color: rgba(255,255,255,.6);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .blogs-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 80px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.7);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .blogs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .blog-card {
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 18px;
+            padding: 28px;
+            text-decoration: none;
+            color: inherit;
+            transition: all .25s;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+        .blog-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(167,139,250,.08), rgba(244,114,182,.05));
+            opacity: 0;
+            transition: opacity .25s;
+        }
+        .blog-card:hover {
+            border-color: rgba(167,139,250,.4);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,.3);
+            color: inherit;
+        }
+        .blog-card:hover::before { opacity: 1; }
+        .blog-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .blog-card-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .blog-card-desc {
+            font-size: .85rem;
+            color: rgba(255,255,255,.55);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        .blog-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .blog-meta-badge {
+            background: rgba(255,255,255,.08);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: .75rem;
+            color: rgba(255,255,255,.6);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .blog-card-arrow {
+            position: absolute;
+            top: 28px;
+            right: 28px;
+            color: rgba(255,255,255,.3);
+            transition: all .2s;
+        }
+        .blog-card:hover .blog-card-arrow {
+            color: #a78bfa;
+            transform: translate(2px, -2px);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(124,58,237,.15);
+            border: 2px dashed rgba(124,58,237,.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #a78bfa;
+            margin: 0 auto 24px;
+        }
+        .flashes {
+            max-width: 700px;
+            margin: 20px auto 0;
+            padding: 0 20px;
+        }
+        .flash-msg {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .flash-success { background: rgba(52,211,153,.15); border: 1px solid rgba(52,211,153,.3); color: #34d399; }
+        .flash-error   { background: rgba(239,68,68,.15);  border: 1px solid rgba(239,68,68,.3);  color: #f87171; }
+        .flash-info    { background: rgba(96,165,250,.15); border: 1px solid rgba(96,165,250,.3); color: #60a5fa; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="/" class="top-bar-brand">
+        <i class="fas fa-layer-group me-2"></i>Blog Platform
+    </a>
+    <div class="d-flex gap-2 align-items-center">
+        {% if super_admin_logged_in %}
+            <a href="{{ url_for('super_admin_dashboard') }}" class="btn-super">
+                <i class="fas fa-tachometer-alt"></i> Admin Panel
+            </a>
+            <a href="{{ url_for('super_admin_logout') }}" class="btn-super" style="background:rgba(239,68,68,.3);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        {% else %}
+            <a href="{{ url_for('super_admin_login') }}" class="btn-super">
+                <i class="fas fa-shield-alt"></i> Super Admin
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flashes">
+        {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}">
+                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}times-circle{% else %}info-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+<div class="hero animate__animated animate__fadeIn">
+    <div class="hero-badge"><i class="fas fa-rocket me-1"></i>Multi-Blog Platform</div>
+    <h1>Your Blog Network</h1>
+    <p>Each blog is fully independent with its own admin panel, settings, and content.</p>
+</div>
+
+<div class="blogs-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-blog me-2"></i>{{ blogs | length }} Blog{% if blogs | length != 1 %}s{% endif %}
+        </div>
+        {% if super_admin_logged_in %}
+        <a href="{{ url_for('super_admin_create_blog') }}" class="btn-super">
+            <i class="fas fa-plus"></i> New Blog
+        </a>
+        {% endif %}
+    </div>
+
+    {% if blogs %}
+    <div class="blogs-grid">
+        {% for blog in blogs %}
+        <a href="{{ url_for('blog_index', blog_id=blog.id) }}" class="blog-card animate__animated animate__fadeInUp" style="animation-delay:{{ loop.index0 * 0.06 }}s">
+            <div class="blog-card-icon">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <i class="fas fa-arrow-up-right-from-square blog-card-arrow"></i>
+            <div class="blog-card-name">{{ blog.name }}</div>
+            <div class="blog-card-desc">{{ blog.description or 'No description provided.' }}</div>
+            <div class="blog-card-meta">
+                <span class="blog-meta-badge">
+                    <i class="fas fa-file-alt"></i> {{ blog.post_count }} post{% if blog.post_count != 1 %}s{% endif %}
+                </span>
+                <span class="blog-meta-badge">
+                    <i class="fas fa-link"></i> /{{ blog.id }}/
+                </span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state animate__animated animate__fadeIn">
+        <div class="empty-icon"><i class="fas fa-blog"></i></div>
+        <h3 style="color:rgba(255,255,255,.8); margin-bottom:10px;">No blogs yet</h3>
+        <p style="color:rgba(255,255,255,.5); margin-bottom:24px;">Sign in as Super Admin to create your first blog.</p>
+        <a href="{{ url_for('super_admin_login') }}" class="btn-super" style="font-size:.95rem; padding:10px 24px;">
+            <i class="fas fa-shield-alt"></i> Get Started
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
