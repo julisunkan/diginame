@@ -502,6 +502,61 @@ def super_admin_dashboard():
     return render_template('super_admin/dashboard.html', blogs=blogs)
 
 
+@app.route('/super-admin/change-credentials', methods=['GET', 'POST'])
+@super_admin_required
+def super_admin_change_credentials():
+    if request.method == 'POST':
+        action           = request.form.get('action')
+        current_password = request.form.get('current_password', '').strip()
+
+        if not current_password:
+            flash('Current password is required to make any changes.', 'error')
+            return redirect(url_for('super_admin_change_credentials'))
+
+        try:
+            admin = fs_get_super_admin()
+            if not admin or not check_password_hash(admin.get('password_hash', ''), current_password):
+                flash('Current password is incorrect.', 'error')
+                return redirect(url_for('super_admin_change_credentials'))
+
+            cred_ref = get_db().collection('super_admin').document('credentials')
+
+            if action == 'username':
+                new_username = request.form.get('new_username', '').strip()
+                if len(new_username) < 3:
+                    flash('Username must be at least 3 characters.', 'error')
+                    return redirect(url_for('super_admin_change_credentials'))
+                cred_ref.update({'username': new_username})
+                flash('Super admin username updated successfully!', 'success')
+
+            elif action == 'password':
+                new_password     = request.form.get('new_password', '')
+                confirm_password = request.form.get('confirm_password', '')
+                if new_password != confirm_password:
+                    flash('New passwords do not match.', 'error')
+                    return redirect(url_for('super_admin_change_credentials'))
+                if len(new_password) < 8:
+                    flash('New password must be at least 8 characters.', 'error')
+                    return redirect(url_for('super_admin_change_credentials'))
+                cred_ref.update({'password_hash': generate_password_hash(new_password)})
+                flash('Super admin password updated successfully!', 'success')
+
+            return redirect(url_for('super_admin_dashboard'))
+
+        except Exception as e:
+            logging.error(f"Error updating super-admin credentials: {e}")
+            flash(f'Error updating credentials: {e}', 'error')
+
+    try:
+        admin = fs_get_super_admin()
+        current_username = admin.get('username', 'superadmin') if admin else 'superadmin'
+    except Exception:
+        current_username = 'superadmin'
+
+    return render_template('super_admin/change_credentials.html',
+                           current_username=current_username)
+
+
 @app.route('/super-admin/create', methods=['GET', 'POST'])
 @super_admin_required
 def super_admin_create_blog():
