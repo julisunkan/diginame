@@ -2,6 +2,10 @@
 
 {% block title %}Site Settings — {{ site_settings.blog_title }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;600;700&family=Lora:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap">
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeInDown">
     <div>
@@ -61,8 +65,6 @@
                 {'name':'Source Serif 4','category':'Serif'},
                 {'name':'Roboto Mono','category':'Monospace'}
             ] %}
-
-            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Raleway:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;600;700&family=Nunito:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;600;700&family=Lora:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap">
 
             <input type="hidden" name="heading_font" id="heading_font" value="{{ settings.heading_font }}">
             <input type="hidden" name="body_font"    id="body_font"    value="{{ settings.body_font }}">

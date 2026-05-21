@@ -2,11 +2,10 @@ import os
 import re
 import io
 import json
-import math
 import hashlib
 import logging
 import functools
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, send_from_directory, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime, timedelta
 from config import config
@@ -243,7 +242,7 @@ def fs_create_blog(name, description='', initial_username='admin',
 
 def fs_delete_blog(blog_id):
     db = get_db()
-    for sub in ('posts', 'settings', 'admin'):
+    for sub in ('posts', 'settings', 'admin', 'activity_log'):
         for doc in db.collection('blogs').document(blog_id).collection(sub).stream():
             doc.reference.delete()
     db.collection('blogs').document(blog_id).delete()
@@ -714,10 +713,10 @@ def favicon():
 @app.route('/<blog_id>/')
 def blog_index(blog_id):
     if is_reserved(blog_id):
-        from flask import abort; abort(404)
+        abort(404)
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     try:
         posts    = fs_blog_get_all_posts(blog_id)
         all_tags = fs_blog_get_all_tags(blog_id)
@@ -733,10 +732,10 @@ def blog_index(blog_id):
 def blog_post_detail(blog_id, post_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     post = fs_blog_get_post(blog_id, post_id)
     if post is None:
-        from flask import abort; abort(404)
+        abort(404)
     try:
         related = fs_blog_get_related_posts(blog_id, post)
     except Exception:
@@ -750,7 +749,7 @@ def blog_post_detail(blog_id, post_id):
 def blog_category(blog_id, tag):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     tag_name = fs_blog_find_tag_by_slug(blog_id, tag) or tag.replace('-', ' ').title()
     try:
         posts    = fs_blog_get_posts_by_tag(blog_id, tag)
@@ -774,7 +773,7 @@ def blog_admin_login(blog_id):
 
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
 
     if request.method == 'POST':
         username = request.form.get('username', '')
@@ -799,7 +798,6 @@ def blog_admin_login(blog_id):
 
 
 @app.route('/<blog_id>/admin/logout')
-@blog_admin_required
 def blog_admin_logout(blog_id):
     session.pop(f'blog_admin_{blog_id}', None)
     flash('Logged out successfully!', 'success')
@@ -815,7 +813,7 @@ def blog_admin_logout(blog_id):
 def blog_admin_dashboard(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     try:
         posts = fs_blog_get_all_posts(blog_id)
     except Exception as e:
@@ -832,7 +830,7 @@ def blog_admin_dashboard(blog_id):
 def blog_activity_log(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     activity = fs_blog_get_activity_log(blog_id, limit=100)
     ctx = blog_ctx(blog_id)
     ctx.update({'blog': blog, 'activity': activity})
@@ -844,11 +842,14 @@ def blog_activity_log(blog_id):
 def blog_new_post(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
 
     if request.method == 'POST':
-        title          = request.form['title']
-        content        = request.form['content']
+        title   = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        if not title or not content:
+            flash('Title and content are required.', 'error')
+            return redirect(url_for('blog_new_post', blog_id=blog_id))
         featured_image = request.form.get('featured_image', '').strip() or None
         tags           = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
         try:
@@ -875,19 +876,23 @@ def blog_new_post(blog_id):
 def blog_edit_post(blog_id, post_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     post = fs_blog_get_post(blog_id, post_id)
     if post is None:
-        from flask import abort; abort(404)
+        abort(404)
 
     if request.method == 'POST':
-        tags      = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
-        new_title = request.form['title']
+        new_title = request.form.get('title', '').strip()
+        content   = request.form.get('content', '').strip()
+        if not new_title or not content:
+            flash('Title and content are required.', 'error')
+            return redirect(url_for('blog_edit_post', blog_id=blog_id, post_id=post_id))
+        tags = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
         try:
             fs_blog_update_post(
                 blog_id, post_id,
                 new_title,
-                request.form['content'],
+                content,
                 request.form.get('featured_image', '').strip() or None,
                 tags,
             )
@@ -932,22 +937,22 @@ def blog_delete_post(blog_id, post_id):
 def blog_admin_settings(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
     settings = get_blog_settings(blog_id)
 
     if request.method == 'POST':
         new_settings = SiteSettings({
-            'blog_title':        request.form['blog_title'],
-            'blog_description':  request.form['blog_description'],
-            'primary_color':     request.form['primary_color'],
-            'secondary_color':   request.form['secondary_color'],
-            'background_color':  request.form['background_color'],
-            'overall_background':request.form['overall_background'],
-            'card_background':   request.form['card_background'],
-            'text_color':        request.form['text_color'],
-            'navbar_color':      request.form['navbar_color'],
-            'heading_font':      request.form.get('heading_font', 'Inter'),
-            'body_font':         request.form.get('body_font', 'Inter'),
+            'blog_title':        request.form.get('blog_title', settings.blog_title),
+            'blog_description':  request.form.get('blog_description', settings.blog_description),
+            'primary_color':     request.form.get('primary_color', settings.primary_color),
+            'secondary_color':   request.form.get('secondary_color', settings.secondary_color),
+            'background_color':  request.form.get('background_color', settings.background_color),
+            'overall_background':request.form.get('overall_background', settings.overall_background),
+            'card_background':   request.form.get('card_background', settings.card_background),
+            'text_color':        request.form.get('text_color', settings.text_color),
+            'navbar_color':      request.form.get('navbar_color', settings.navbar_color),
+            'heading_font':      request.form.get('heading_font', settings.heading_font),
+            'body_font':         request.form.get('body_font', settings.body_font),
         })
         try:
             fs_blog_save_settings(blog_id, new_settings.to_dict())
@@ -986,7 +991,7 @@ def blog_reset_settings(blog_id):
 def blog_change_credentials(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
 
     if request.method == 'POST':
         action           = request.form.get('action')
@@ -1088,7 +1093,7 @@ def blog_export(blog_id):
 def blog_import(blog_id):
     blog = fs_get_blog(blog_id)
     if not blog:
-        from flask import abort; abort(404)
+        abort(404)
 
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -1156,9 +1161,11 @@ def blog_import(blog_id):
 
 @app.route('/<blog_id>/certificate/<string:post_id>/<path:student_name>')
 def blog_download_certificate(blog_id, post_id, student_name):
+    if is_reserved(blog_id):
+        abort(404)
     post = fs_blog_get_post(blog_id, post_id)
     if post is None:
-        from flask import abort; abort(404)
+        abort(404)
     s = get_blog_settings(blog_id)
     completion_date = datetime.now().strftime('%B %d, %Y')
     certificate_html = f"""<!DOCTYPE html>
@@ -1402,6 +1409,8 @@ body.mobile-app-body {{
 
 @app.route('/<blog_id>/dynamic-styles.css')
 def blog_dynamic_styles(blog_id):
+    if is_reserved(blog_id):
+        abort(404)
     s = get_blog_settings(blog_id)
     resp = Response(_build_dynamic_css(s), mimetype='text/css')
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
@@ -1513,12 +1522,10 @@ def _make_blog_icon_png(size: int, primary: str, secondary: str,
 
 def _get_blog_icon(blog_id: str, size: int, maskable: bool = False) -> bytes:
     s = get_blog_settings(blog_id)
+    initials = ''.join(w[0] for w in s.blog_title.split() if w)[:2] or blog_id[:2].upper()
     cache_key = (blog_id, size, maskable,
-                 s.primary_color, s.secondary_color)
+                 s.primary_color, s.secondary_color, initials)
     if cache_key not in _ICON_CACHE:
-        initials = ''.join(
-            w[0] for w in s.blog_title.split() if w
-        )[:2] or blog_id[:2].upper()
         _ICON_CACHE[cache_key] = _make_blog_icon_png(
             size, s.primary_color, s.secondary_color,
             initials, maskable=maskable,
@@ -1537,20 +1544,20 @@ _ICON_RE = re.compile(r'^(icon|maskable)-(\d+)\.png$')
 @app.route('/<blog_id>/icons/<path:filename>')
 def blog_pwa_icon(blog_id, filename):
     if is_reserved(blog_id):
-        from flask import abort; abort(404)
+        abort(404)
     m = _ICON_RE.match(filename)
     if not m:
-        from flask import abort; abort(404)
+        abort(404)
     kind, size_str = m.group(1), m.group(2)
     size = int(size_str)
     if size not in _ICON_SIZES:
-        from flask import abort; abort(404)
+        abort(404)
     maskable = (kind == 'maskable')
     try:
         png_bytes = _get_blog_icon(blog_id, size, maskable=maskable)
     except Exception as e:
         logging.error(f'Icon generation error for {blog_id}/{filename}: {e}')
-        from flask import abort; abort(500)
+        abort(500)
     resp = Response(png_bytes, mimetype='image/png')
     resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
@@ -1559,10 +1566,10 @@ def blog_pwa_icon(blog_id, filename):
 @app.route('/<blog_id>/manifest.json')
 def blog_pwa_manifest(blog_id):
     if is_reserved(blog_id):
-        from flask import abort; abort(404)
+        abort(404)
     try:
         if not fs_get_blog(blog_id):
-            from flask import abort; abort(404)
+            abort(404)
     except Exception:
         pass
     s = get_blog_settings(blog_id)
@@ -1616,10 +1623,10 @@ def blog_pwa_manifest(blog_id):
 @app.route('/<blog_id>/sw.js')
 def blog_pwa_sw(blog_id):
     if is_reserved(blog_id):
-        from flask import abort; abort(404)
+        abort(404)
     try:
         if not fs_get_blog(blog_id):
-            from flask import abort; abort(404)
+            abort(404)
     except Exception:
         pass
     s = get_blog_settings(blog_id)

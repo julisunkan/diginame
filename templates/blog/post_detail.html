@@ -145,7 +145,7 @@ document.getElementById('certificateForm').addEventListener('submit', function(e
     const fullName = document.getElementById('fullName').value.trim();
     if (!fullName) { alert('Please enter your full name'); return; }
     document.getElementById('certificateName').textContent = fullName;
-    document.getElementById('certificateTitle').textContent = '{{ post.title | replace("'", "\\'") }}';
+    document.getElementById('certificateTitle').textContent = {{ post.title | tojson }};
     document.getElementById('completionDate').textContent = new Date().toLocaleDateString();
     const preview = document.getElementById('certificatePreview');
     preview.style.display = 'block';

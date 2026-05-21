@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('blog_dynamic_styles', blog_id=blog_id) }}?v={{ site_settings.primary_color | replace('#','') }}-{{ site_settings.secondary_color | replace('#','') }}">
+    {% block extra_head %}{% endblock %}
 </head>
 <body class="mobile-app-body">
 
