@@ -319,7 +319,7 @@
 .blog-card .card-text {
     font-size: 0.9rem;
     line-height: 1.5;
-    color: #666;
+    color: var(--clr-text, #666);
     margin-bottom: 15px;
 }
 

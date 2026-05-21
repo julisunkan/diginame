@@ -1459,8 +1459,28 @@ body.mobile-app-body {{
 .tutorial-title {{ color: var(--clr-primary) !important; }}
 .signature-line hr {{ border-color: var(--clr-primary) !important; }}
 .signature-line small {{ color: var(--clr-secondary) !important; }}
-.card-title    {{ color: var(--clr-text); }}
-.post-content  {{ color: var(--clr-text); line-height: 1.8; }}
+/* ── Text colour: all public content elements ───────────────── */
+.blog-card .card-title,
+.blog-card h1, .blog-card h2, .blog-card h3,
+.blog-card h4, .blog-card h5, .blog-card h6 {{
+    color: var(--clr-text) !important;
+}}
+.blog-card .card-text,
+.blog-card .card-body > p,
+.blog-card .card-body > small,
+.blog-card .card-body > ul,
+.blog-card .card-body > ol,
+.blog-card .card-body > li {{
+    color: var(--clr-text) !important;
+}}
+.post-content {{ color: var(--clr-text); line-height: 1.8; }}
+.post-content p, .post-content li, .post-content blockquote,
+.post-content td, .post-content th,
+.post-content h1, .post-content h2, .post-content h3,
+.post-content h4, .post-content h5, .post-content h6 {{
+    color: var(--clr-text) !important;
+}}
+.related-posts-heading {{ color: var(--clr-text) !important; }}
 #readingProgress {{
     background: linear-gradient(90deg, var(--clr-primary), var(--clr-secondary), var(--clr-primary)) !important;
 }}
