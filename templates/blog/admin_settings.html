@@ -118,13 +118,76 @@
     .font-card-cat { font-size:.58rem; display:block; font-family:Inter,sans-serif; color:rgba(255,255,255,.4); margin-top:2px; }
     </style>
 
+    <!-- Preset Themes -->
+    <div class="card blog-card mb-4 animate__animated animate__fadeIn">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
+                <i class="fas fa-magic me-2"></i>Preset Themes
+            </h5>
+            <p class="text-white-50 small mb-4">Pick a theme to instantly fill all color and font fields below — then save to apply it.</p>
+
+            <div class="theme-grid">
+                {% for theme in preset_themes %}
+                <button type="button" class="theme-card" data-theme="{{ theme | tojson | e }}"
+                        title="Apply {{ theme.name }}">
+                    <div class="theme-preview">
+                        <div class="theme-preview-bg" style="background:linear-gradient(135deg,{{ theme.primary_color }},{{ theme.secondary_color }});"></div>
+                        <div class="theme-preview-navbar" style="background:{{ theme.navbar_color }};"></div>
+                        <div class="theme-preview-card" style="background:{{ theme.card_background }};"></div>
+                        <div class="theme-preview-dot" style="background:{{ theme.primary_color }};"></div>
+                        <div class="theme-preview-dot theme-preview-dot2" style="background:{{ theme.secondary_color }};"></div>
+                    </div>
+                    <div class="theme-swatches">
+                        <span class="theme-swatch" style="background:{{ theme.primary_color }};" title="Primary"></span>
+                        <span class="theme-swatch" style="background:{{ theme.secondary_color }};" title="Secondary"></span>
+                        <span class="theme-swatch" style="background:{{ theme.overall_background }};" title="Background"></span>
+                        <span class="theme-swatch" style="background:{{ theme.navbar_color }};" title="Navbar"></span>
+                        <span class="theme-swatch" style="background:{{ theme.card_background }};border:1px solid rgba(255,255,255,.2);" title="Card"></span>
+                    </div>
+                    <div class="theme-name">{{ theme.emoji }} {{ theme.name }}</div>
+                    <div class="theme-fonts">{{ theme.heading_font }} / {{ theme.body_font }}</div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .theme-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+    .theme-card {
+        background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.1);
+        border-radius:14px; padding:0; cursor:pointer; transition:all .2s;
+        text-align:center; color:#fff; overflow:hidden; display:flex; flex-direction:column;
+    }
+    .theme-card:hover { border-color:rgba(255,255,255,.35); transform:translateY(-3px); box-shadow:0 10px 28px rgba(0,0,0,.4); }
+    .theme-card.theme-active { border-color:#a78bfa; box-shadow:0 0 0 3px rgba(167,139,250,.35); }
+    .theme-preview {
+        position:relative; height:70px; overflow:hidden;
+    }
+    .theme-preview-bg { position:absolute; inset:0; }
+    .theme-preview-navbar { position:absolute; top:0; left:0; right:0; height:14px; }
+    .theme-preview-card {
+        position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+        width:70%; height:28px; border-radius:6px; opacity:.9;
+    }
+    .theme-preview-dot {
+        position:absolute; bottom:18px; left:26%; width:10px; height:10px;
+        border-radius:50%; border:2px solid rgba(255,255,255,.6);
+    }
+    .theme-preview-dot2 { left:auto; right:26%; }
+    .theme-swatches { display:flex; justify-content:center; gap:5px; padding:8px 10px 4px; }
+    .theme-swatch { width:16px; height:16px; border-radius:50%; display:inline-block; flex-shrink:0; }
+    .theme-name { font-size:.8rem; font-weight:700; padding:2px 8px 2px; color:rgba(255,255,255,.9); }
+    .theme-fonts { font-size:.65rem; color:rgba(255,255,255,.4); padding:0 8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    </style>
+
     <!-- Color Customization -->
     <div class="card blog-card mb-4">
         <div class="card-body p-4">
             <h5 class="fw-bold mb-1" style="color:var(--clr-primary,#a5b4fc);">
                 <i class="fas fa-paint-brush me-2"></i>Color Scheme
             </h5>
-            <p class="text-white-50 small mb-3">These colors control the overall look of your blog.</p>
+            <p class="text-white-50 small mb-3">These colors control the overall look of your blog. Selecting a theme above fills these in automatically.</p>
 
             <div class="row g-3">
                 <div class="col-6 col-md-4">
@@ -257,6 +320,40 @@ document.querySelectorAll('.font-card').forEach(btn => {
         document.querySelectorAll(`[data-target="${target}"]`).forEach(b => b.classList.remove('font-card-active'));
         btn.classList.add('font-card-active');
         document.getElementById(target + '_font').value = fontName;
+    });
+});
+
+// Theme picker
+function setColorField(id, value) {
+    const el = document.getElementById(id);
+    const lbl = document.getElementById(id + '_label');
+    if (el) el.value = value;
+    if (lbl) lbl.textContent = value;
+}
+
+function activateFontCard(target, fontName) {
+    document.querySelectorAll(`[data-target="${target}"]`).forEach(b => b.classList.remove('font-card-active'));
+    const match = document.querySelector(`[data-target="${target}"][data-font="${fontName}"]`);
+    if (match) match.classList.add('font-card-active');
+    const hidden = document.getElementById(target + '_font');
+    if (hidden) hidden.value = fontName;
+}
+
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const theme = JSON.parse(card.dataset.theme);
+        setColorField('primary_color',      theme.primary_color);
+        setColorField('secondary_color',    theme.secondary_color);
+        setColorField('background_color',   theme.background_color);
+        setColorField('overall_background', theme.overall_background);
+        setColorField('card_background',    theme.card_background);
+        setColorField('text_color',         theme.text_color);
+        setColorField('navbar_color',       theme.navbar_color);
+        activateFontCard('heading', theme.heading_font);
+        activateFontCard('body',    theme.body_font);
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('theme-active'));
+        card.classList.add('theme-active');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 });
 </script>

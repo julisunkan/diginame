@@ -109,6 +109,79 @@ DEFAULT_SETTINGS = {
     'body_font': 'Inter',
 }
 
+PRESET_THEMES = [
+    {
+        'id':                 'ocean',
+        'name':               'Ocean Breeze',
+        'emoji':              '🌊',
+        'primary_color':      '#06b6d4',
+        'secondary_color':    '#0284c7',
+        'background_color':   '#0ea5e9',
+        'overall_background': '#0c1a2e',
+        'card_background':    '#e0f7fa',
+        'text_color':         '#0c1a2e',
+        'navbar_color':       '#0a1628',
+        'heading_font':       'Space Grotesk',
+        'body_font':          'DM Sans',
+    },
+    {
+        'id':                 'sunset',
+        'name':               'Sunset Glow',
+        'emoji':              '🌅',
+        'primary_color':      '#f97316',
+        'secondary_color':    '#ec4899',
+        'background_color':   '#f97316',
+        'overall_background': '#1a0a00',
+        'card_background':    '#fff7ed',
+        'text_color':         '#1c1917',
+        'navbar_color':       '#2d1206',
+        'heading_font':       'Playfair Display',
+        'body_font':          'Lora',
+    },
+    {
+        'id':                 'forest',
+        'name':               'Forest Green',
+        'emoji':              '🌿',
+        'primary_color':      '#22c55e',
+        'secondary_color':    '#16a34a',
+        'background_color':   '#22c55e',
+        'overall_background': '#071a0a',
+        'card_background':    '#f0fdf4',
+        'text_color':         '#14532d',
+        'navbar_color':       '#052e16',
+        'heading_font':       'Merriweather',
+        'body_font':          'Inter',
+    },
+    {
+        'id':                 'midnight',
+        'name':               'Midnight Purple',
+        'emoji':              '🔮',
+        'primary_color':      '#a855f7',
+        'secondary_color':    '#ec4899',
+        'background_color':   '#a855f7',
+        'overall_background': '#0f0a1a',
+        'card_background':    '#faf5ff',
+        'text_color':         '#1a0a2e',
+        'navbar_color':       '#0a0614',
+        'heading_font':       'Poppins',
+        'body_font':          'Nunito',
+    },
+    {
+        'id':                 'crimson',
+        'name':               'Crimson Gold',
+        'emoji':              '🔥',
+        'primary_color':      '#dc2626',
+        'secondary_color':    '#d97706',
+        'background_color':   '#dc2626',
+        'overall_background': '#1a0505',
+        'card_background':    '#fffbeb',
+        'text_color':         '#1c1917',
+        'navbar_color':       '#2d0a0a',
+        'heading_font':       'Raleway',
+        'body_font':          'Montserrat',
+    },
+]
+
 AVAILABLE_FONTS = [
     {'name': 'Inter',            'category': 'sans-serif',  'google': False},
     {'name': 'Poppins',          'category': 'sans-serif',  'google': True},
@@ -965,7 +1038,7 @@ def blog_admin_settings(blog_id):
         return redirect(url_for('blog_admin_settings', blog_id=blog_id))
 
     ctx = blog_ctx(blog_id)
-    ctx.update({'blog': blog, 'settings': settings})
+    ctx.update({'blog': blog, 'settings': settings, 'preset_themes': PRESET_THEMES})
     return render_template('blog/admin_settings.html', **ctx)
 
 
