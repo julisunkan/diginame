@@ -811,7 +811,8 @@ def blog_post_detail(blog_id, post_id):
         abort(404)
     try:
         related = fs_blog_get_related_posts(blog_id, post)
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Could not load related posts for {blog_id}/{post_id}: {e}")
         related = []
     ctx = blog_ctx(blog_id)
     ctx.update({'blog': blog, 'post': post, 'related_posts': related})
@@ -1198,8 +1199,8 @@ def blog_import(blog_id):
                     try:
                         created_at = datetime.fromisoformat(
                             post_data['created_at'].replace('Z', '+00:00'))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logging.warning(f"Could not parse created_at '{post_data['created_at']}': {e}")
                 _blog_col(blog_id, 'posts').add({
                     'title':          post_data['title'],
                     'content':        post_data['content'],
@@ -1643,8 +1644,8 @@ def blog_pwa_manifest(blog_id):
     try:
         if not fs_get_blog(blog_id):
             abort(404)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"Could not verify blog {blog_id} for manifest: {e}")
     s = get_blog_settings(blog_id)
     short_name = s.blog_title[:12] if len(s.blog_title) > 12 else s.blog_title
 
@@ -1700,8 +1701,8 @@ def blog_pwa_sw(blog_id):
     try:
         if not fs_get_blog(blog_id):
             abort(404)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"Could not verify blog {blog_id} for service worker: {e}")
     s = get_blog_settings(blog_id)
     version = hashlib.md5(
         f'{s.primary_color}{s.secondary_color}{s.blog_title}'.encode()
